@@ -1,0 +1,3562 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farol de Presença - Sistema CCB</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <!-- Firebase SDK -->
+    <script type="module" id="firebaseModule">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    const firebaseConfig = { apiKey: "AIzaSyD-SxtSQYKkfbT7dZXthECWGPuEVcBfadk", authDomain: "farol-de-presenca.firebaseapp.com", projectId: "farol-de-presenca", storageBucket: "farol-de-presenca.firebasestorage.app", messagingSenderId: "1082233137608", appId: "1:1082233137608:web:8925f4f33ac11d750e38fd" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    window._firebase = {
+      async salvarBackup(nome) { const d = { ...window._getSystemData(), timestamp: new Date().toISOString(), nome }; await setDoc(doc(db, "backups", nome), d); },
+      async listarBackups() { const s = await getDocs(collection(db, "backups")); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
+      async restaurarBackup(nome) { const s = await getDoc(doc(db, "backups", nome)); return s.exists() ? s.data() : null; },
+      async deletarBackup(nome) { await deleteDoc(doc(db, "backups", nome)); },
+      async syncAutoSave(dados) { await setDoc(doc(db, "sistema", "dados_principais"), { ...dados, ultimaAtualizacao: new Date().toISOString() }); },
+      async carregarDadosPrincipais() { const s = await getDoc(doc(db, "sistema", "dados_principais")); return s.exists() ? s.data() : null; },
+      async salvarJustificativa(just) { const id = 'just_' + Date.now() + '_' + Math.random().toString(36).substr(2,6); await setDoc(doc(db, "justificativas", id), { ...just, id, timestamp: new Date().toISOString() }); return id; },
+      async listarJustificativas() { const s = await getDocs(collection(db, "justificativas")); return s.docs.map(d => d.data()); },
+      async deletarJustificativa(id) { await deleteDoc(doc(db, "justificativas", id)); }
+    };
+    window._firebaseReady = true;
+    document.dispatchEvent(new Event("firebaseReady"));
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(145deg, #1a2a3a 0%, #1e3a5f 40%, #16304a 100%);
+            min-height: 100vh;
+            padding-bottom: 60px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1a2a3a 0%, #2c3e50 50%, #1a3a4a 100%);
+            color: white;
+            padding: 0;
+            margin-bottom: 0;
+            border-radius: 12px 12px 0 0;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(52,152,219,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(26,188,156,0.12) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-logo {
+            width: 52px;
+            height: 52px;
+            background: rgba(255,255,255,0.14);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .header-text h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            margin: 0;
+            line-height: 1.2;
+            color: #ffffff;
+        }
+
+        .header-text p {
+            font-size: 12px;
+            color: rgba(255,255,255,0.75);
+            margin: 4px 0 0;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .header-badge {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 20px;
+            padding: 7px 16px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.85);
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        /* ABAS */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: #1a2a3a;
+            border-radius: 0 0 12px 12px;
+            padding: 8px 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            overflow-x: auto;
+            scrollbar-width: none;
+            border-top: 1px solid rgba(255,255,255,0.07);
+        }
+
+        .tabs::-webkit-scrollbar { display: none; }
+
+        .tab-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 20px 9px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: rgba(255,255,255,0.75);
+            font-family: Arial, sans-serif;
+            min-width: 90px;
+            gap: 4px;
+        }
+
+        .tab-button .tab-sigla {
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            line-height: 1;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .tab-button .tab-desc {
+            font-size: 10px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.55);
+            letter-spacing: 0.2px;
+            max-width: 100px;
+            text-align: center;
+            white-space: normal;
+            line-height: 1.3;
+        }
+
+        .tab-button:hover {
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(255,255,255,0.2);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .tab-button:hover .tab-sigla { color: #fff; }
+        .tab-button:hover .tab-desc  { color: rgba(255,255,255,0.85); }
+
+        .tab-button.active {
+            background: #3498db;
+            border-color: #2980b9;
+            color: #fff;
+            box-shadow: 0 3px 10px rgba(52,152,219,0.45);
+            transform: translateY(-1px);
+        }
+
+        .tab-button.active .tab-sigla {
+            color: #ffffff;
+            font-size: 16px;
+        }
+
+        .tab-button.active .tab-desc {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+            position: relative;
+        }
+
+        .section h2 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 18px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .clear-button-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .btn-clear {
+            background: #e74c3c;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-clear:hover {
+            background: #c0392b;
+        }
+
+        .upload-area {
+            border: 2px dashed #3498db;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            background: #f0f8ff;
+            border-color: #2980b9;
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+
+        table th, table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        table th {
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+
+        table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        table tr:hover {
+            background: #f0f0f0;
+        }
+
+        .presence-cell {
+            width: 80px;
+            height: 40px;
+            cursor: pointer;
+            text-align: center;
+            vertical-align: middle;
+            font-weight: bold;
+            font-size: 16px;
+            position: relative;
+        }
+
+        .presence-cell.present {
+            background: #27ae60;
+            color: white;
+        }
+
+        .presence-cell.absent {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .presence-cell.justified {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .presence-cell.present-manual {
+            background: #27ae60;
+            color: white;
+        }
+
+        /* Popup de edição de presença */
+        .presence-popup {
+            position: fixed;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            padding: 10px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 210px;
+        }
+
+        .presence-popup .popup-title {
+            font-size: 11px;
+            color: #888;
+            text-align: center;
+            margin-bottom: 2px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .presence-popup .popup-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .presence-popup button {
+            flex: 1;
+            padding: 8px 6px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .presence-popup button:hover { opacity: 0.85; }
+
+        .presence-popup .btn-presente {
+            background: #27ae60;
+            color: white;
+        }
+
+        .presence-popup .btn-ausente {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .presence-popup .btn-justificado {
+            background: #e67e22;
+            color: white;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .export-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* Dashboard Styles */
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .dashboard-card h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .dashboard-card .number {
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .dashboard-card.rma {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .dashboard-card.ra {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .dashboard-card.raec {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .chart-container h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        .chart-wrapper-tall {
+            position: relative;
+            height: 400px;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            font-size: 13px;
+        }
+
+        .message {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .manual-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .manual-form .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .history-table {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        @media print {
+            footer, .tabs, .export-buttons, .upload-area, .btn {
+                display: none !important;
+            }
+        }
+
+        /* ── TOAST ── */
+        #toastContainer {
+            position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+            z-index: 9999; display: flex; flex-direction: column; align-items: center;
+            gap: 8px; pointer-events: none;
+        }
+        .toast {
+            background: #2c3e50; color: white; padding: 10px 20px; border-radius: 24px;
+            font-size: 13px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            opacity: 0; transform: translateY(10px); transition: opacity 0.3s, transform 0.3s; white-space: nowrap;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #27ae60; }
+        .toast.info    { background: #3498db; }
+        .toast.warning { background: #f39c12; }
+
+        /* ── MODAL PERFIL ── */
+        #modalPerfil {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+            z-index: 8000; align-items: center; justify-content: center;
+        }
+        #modalPerfil.open { display: flex; }
+        #modalPerfilBox {
+            background: white; border-radius: 14px; width: 92%; max-width: 680px;
+            max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+            padding: 28px; position: relative;
+        }
+        #modalPerfilClose {
+            position: absolute; top: 14px; right: 18px;
+            background: none; border: none; font-size: 22px; cursor: pointer; color: #888; line-height: 1;
+        }
+        #modalPerfilClose:hover { color: #e74c3c; }
+        .perfil-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0; }
+        .perfil-stat-card { background: #f4f8ff; border-radius: 10px; padding: 12px 14px; text-align: center; border: 1px solid #d0e4f7; }
+        .perfil-stat-card .psc-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+        .perfil-stat-card .psc-val   { font-size: 22px; font-weight: 800; color: #2c3e50; margin-top: 4px; }
+        .perfil-stat-card .psc-pct   { font-size: 12px; font-weight: 700; margin-top: 2px; }
+
+        /* ── ALERTA AUSÊNCIAS CONSECUTIVAS ── */
+        .alerta-consecutivo {
+            display: inline-block; background: #e74c3c; color: white; border-radius: 10px;
+            font-size: 10px; font-weight: 800; padding: 2px 7px; margin-left: 6px;
+            vertical-align: middle; letter-spacing: 0.3px; animation: pulse-alerta 1.5s infinite;
+        }
+        @keyframes pulse-alerta { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+    </style>
+</head>
+<body>
+    <div id="toastContainer"></div>
+
+    <!-- MODAL PERFIL INDIVIDUAL -->
+    <div id="modalPerfil">
+        <div id="modalPerfilBox">
+            <button id="modalPerfilClose" onclick="fecharPerfil()">✕</button>
+            <div id="modalPerfilContent"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-inner">
+                <div class="header-brand">
+                    <div class="header-logo">🕊️</div>
+                    <div class="header-text">
+                        <h1>Farol de Presença &mdash; CCB</h1>
+                        <p>Controle de Presença em Reuniões · Caieiras</p>
+                    </div>
+                </div>
+                <div class="header-badge" id="headerSyncBadge" style="display:none;"></div>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab('dashboard')">
+                <span class="tab-sigla">📊</span>
+                <span class="tab-desc">Dashboard</span>
+            </button>
+            <button class="tab-button" onclick="openTab('cadastro')">
+                <span class="tab-sigla">👥</span>
+                <span class="tab-desc">Cadastro</span>
+            </button>
+            <button class="tab-button" onclick="openTab('rma')">
+                <span class="tab-sigla">RMA</span>
+                <span class="tab-desc">Ministério e Adm.</span>
+            </button>
+            <button class="tab-button" onclick="openTab('ra')">
+                <span class="tab-sigla">RA</span>
+                <span class="tab-desc">Reunião Adm.</span>
+            </button>
+            <button class="tab-button" onclick="openTab('raec')">
+                <span class="tab-sigla">RAEC</span>
+                <span class="tab-desc">Eng. e Compras</span>
+            </button>
+            <button class="tab-button" onclick="openTab('justificativas')">
+                <span class="tab-sigla">📝</span>
+                <span class="tab-desc">Justificativas</span>
+            </button>
+
+        </div>
+
+        <!-- ABA DASHBOARD -->
+        <div id="dashboard" class="tab-content active">
+            <div class="section">
+                <h2>📈 Visão Geral das Reuniões</h2>
+                <!-- Filtro Global de Ano -->
+                <div id="dashAnoFiltroContainer" style="margin-bottom:18px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <span style="font-size:13px; color:#555; font-weight:bold;">📅 Ano:</span>
+                    <div id="dashAnoBtns" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+                </div>
+                <div class="dashboard-cards">
+                    <div class="dashboard-card rma">
+                        <h3>RMA - Reunião Ministério e Administração</h3>
+                        <div class="number" id="totalRMA">0</div>
+                        <p>Reuniões Realizadas</p>
+                    </div>
+                    <div class="dashboard-card ra">
+                        <h3>RA - Reunião Administrativa</h3>
+                        <div class="number" id="totalRA">0</div>
+                        <p>Reuniões Realizadas</p>
+                    </div>
+                    <div class="dashboard-card raec">
+                        <h3>RAEC - Reunião Adm. Eng. e Compras</h3>
+                        <div class="number" id="totalRAEC">0</div>
+                        <p>Reuniões Realizadas</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📊 Participação por Ministério/Cargo - RMA</h2>
+                <div style="margin-bottom:10px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                    <label style="font-size:13px; color:#555;">📅 Mês:</label>
+                    <select id="mesGraficosRMA" onchange="updateChartsForType('rma', rmaData)" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; font-size:13px;">
+                        <option value="todos">Todos os meses</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <h3 id="h3RMAMinisterio">Quantidade de Participações por Ministério/Cargo (RMA)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartRMAMinisterio"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🥧 Porcentagem de Presença - RMA</h2>
+                <div class="chart-container">
+                    <h3 id="h3RMAPizza">Percentual de Presença vs Ausência (RMA)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartRMAPizza"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📈 Presença Acumulada por Pessoa - RMA</h2>
+                <div class="chart-container">
+                    <h3 id="h3RMALinhas">Total de Presenças no Ano (RMA)</h3>
+                    <div style="margin-bottom:10px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                        <label style="font-size:13px; color:#555;">🔽 Ordenar por:</label>
+                        <select id="sortRMA" onchange="renderPresencaAcumulada('rma')" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; font-size:13px;">
+                            <option value="hierarquia">Hierarquia de Cargo</option>
+                            <option value="nome">Nome (A-Z)</option>
+                            <option value="desc">Mais presenças primeiro</option>
+                            <option value="asc">Menos presenças primeiro</option>
+                        </select>
+                        <label style="font-size:13px; color:#555;">📋 Cargo:</label>
+                        <select id="filterRMA" onchange="renderPresencaAcumulada('rma')" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; font-size:13px;">
+                            <option value="todos">Todos os Cargos</option>
+                            <option value="Ancião">⛪ Ancião</option>
+                            <option value="Diácono">🙏 Diácono</option>
+                            <option value="Cooperador Ofício Ministerial">✝️ Coop. Ofício Ministerial</option>
+                            <option value="Cooperador de Jovens">👥 Coop. de Jovens</option>
+                            <option value="Encarregado Regional">🗺️ Encarregado Regional</option>
+                            <option value="Administração">📋 Administração</option>
+                            <option value="Conselho Fiscal">🔍 Conselho Fiscal</option>
+                            <option value="Suplente do Conselho Fiscal">🔍 Suplente C. Fiscal</option>
+                            <option value="Colaboradores">🤝 Colaboradores</option>
+                        </select>
+                        <label style="font-size:13px; color:#555;">🚦 Status:</label>
+                        <select id="semaforoFilterRMA" onchange="renderPresencaAcumulada('rma')" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; font-size:13px;">
+                            <option value="todos">Todos</option>
+                            <option value="criticos">🔴 Críticos (&lt;50%)</option>
+                            <option value="atencao">🟡 Atenção (50-75%)</option>
+                            <option value="bons">🟢 Bons (&gt;75%)</option>
+                        </select>
+                        <button onclick="imprimirPresencaAcumulada('rma')" style="margin-left:auto; padding:6px 14px; background:#3498db; color:#fff; border:none; border-radius:8px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:5px;">🖨️ Imprimir PDF</button>
+                    </div>
+                    <div id="chartRMALinhas" style="overflow-y:auto; max-height:500px;"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📊 Participação por Ministério/Cargo - RA</h2>
+                <div style="margin-bottom:10px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                    <label style="font-size:13px; color:#555;">📅 Mês:</label>
+                    <select id="mesGraficosRA" onchange="updateChartsForType('ra', raData)" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; font-size:13px;">
+                        <option value="todos">Todos os meses</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <h3 id="h3RAMinisterio">Quantidade de Participações por Ministério/Cargo (RA)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartRAMinisterio"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🥧 Porcentagem de Presença - RA</h2>
+                <div class="chart-container">
+                    <h3 id="h3RAPizza">Percentual de Presença vs Ausência (RA)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartRAPizza"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📈 Presença Acumulada por Pessoa - RA</h2>
+                <div class="chart-container">
+                    <h3 id="h3RALinhas">Total de Presenças no Ano (RA)</h3>
+                    <div style="margin-bottom:10px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                        <label style="font-size:13px; color:#555;">🔽 Ordenar por:</label>
+                        <select id="sortRA" onchange="renderPresencaAcumulada('ra')" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; font-size:13px;">
+                            <option value="hierarquia">Hierarquia de Cargo</option>
+                            <option value="nome">Nome (A-Z)</option>
+                            <option value="desc">Mais presenças primeiro</option>
+                            <option value="asc">Menos presenças primeiro</option>
+                        </select>
+                        <label style="font-size:13px; color:#555;">📋 Cargo:</label>
+                        <select id="filterRA" onchange="renderPresencaAcumulada('ra')" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; font-size:13px;">
+                            <option value="todos">Todos os Cargos</option>
+                            <option value="Ancião">⛪ Ancião</option>
+                            <option value="Diácono">🙏 Diácono</option>
+                            <option value="Cooperador Ofício Ministerial">✝️ Coop. Ofício Ministerial</option>
+                            <option value="Cooperador de Jovens">👥 Coop. de Jovens</option>
+                            <option value="Encarregado Regional">🗺️ Encarregado Regional</option>
+                            <option value="Administração">📋 Administração</option>
+                            <option value="Conselho Fiscal">🔍 Conselho Fiscal</option>
+                            <option value="Suplente do Conselho Fiscal">🔍 Suplente C. Fiscal</option>
+                            <option value="Colaboradores">🤝 Colaboradores</option>
+                        </select>
+                        <label style="font-size:13px; color:#555;">🚦 Status:</label>
+                        <select id="semaforoFilterRA" onchange="renderPresencaAcumulada('ra')" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; font-size:13px;">
+                            <option value="todos">Todos</option>
+                            <option value="criticos">🔴 Críticos (&lt;50%)</option>
+                            <option value="atencao">🟡 Atenção (50-75%)</option>
+                            <option value="bons">🟢 Bons (&gt;75%)</option>
+                        </select>
+                        <button onclick="imprimirPresencaAcumulada('ra')" style="margin-left:auto; padding:6px 14px; background:#3498db; color:#fff; border:none; border-radius:8px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:5px;">🖨️ Imprimir PDF</button>
+                    </div>
+                    <div id="chartRALinhas" style="overflow-y:auto; max-height:500px;"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📊 Participação por Ministério/Cargo - RAEC</h2>
+                <div style="margin-bottom:10px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                    <label style="font-size:13px; color:#555;">📅 Mês:</label>
+                    <select id="mesGraficosRAEC" onchange="updateChartsForType('raec', raecData)" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; font-size:13px;">
+                        <option value="todos">Todos os meses</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <h3 id="h3RAECMinisterio">Quantidade de Participações por Ministério/Cargo (RAEC)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartRAECMinisterio"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🥧 Porcentagem de Presença - RAEC</h2>
+                <div class="chart-container">
+                    <h3 id="h3RAECPizza">Percentual de Presença vs Ausência (RAEC)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartRAECPizza"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📈 Presença Acumulada por Pessoa - RAEC</h2>
+                <div class="chart-container">
+                    <h3 id="h3RAECLinhas">Total de Presenças no Ano (RAEC)</h3>
+                    <div style="margin-bottom:10px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                        <label style="font-size:13px; color:#555;">🔽 Ordenar por:</label>
+                        <select id="sortRAEC" onchange="renderPresencaAcumulada('raec')" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; font-size:13px;">
+                            <option value="hierarquia">Hierarquia de Cargo</option>
+                            <option value="nome">Nome (A-Z)</option>
+                            <option value="desc">Mais presenças primeiro</option>
+                            <option value="asc">Menos presenças primeiro</option>
+                        </select>
+                        <label style="font-size:13px; color:#555;">📋 Cargo:</label>
+                        <select id="filterRAEC" onchange="renderPresencaAcumulada('raec')" style="padding:4px 8px; border-radius:6px; font-size:13px; border:1px solid #ccc;">
+                            <option value="todos">Todos os Cargos</option>
+                            <option value="Ancião">⛪ Ancião</option>
+                            <option value="Diácono">🙏 Diácono</option>
+                            <option value="Cooperador Ofício Ministerial">✝️ Coop. Ofício Ministerial</option>
+                            <option value="Cooperador de Jovens">👥 Coop. de Jovens</option>
+                            <option value="Encarregado Regional">🗺️ Encarregado Regional</option>
+                            <option value="Administração">📋 Administração</option>
+                            <option value="Conselho Fiscal">🔍 Conselho Fiscal</option>
+                            <option value="Suplente do Conselho Fiscal">🔍 Suplente C. Fiscal</option>
+                            <option value="Colaboradores">🤝 Colaboradores</option>
+                        </select>
+                        <label style="font-size:13px; color:#555;">🚦 Status:</label>
+                        <select id="semaforoFilterRAEC" onchange="renderPresencaAcumulada('raec')" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc; font-size:13px;">
+                            <option value="todos">Todos</option>
+                            <option value="criticos">🔴 Críticos (&lt;50%)</option>
+                            <option value="atencao">🟡 Atenção (50-75%)</option>
+                            <option value="bons">🟢 Bons (&gt;75%)</option>
+                        </select>
+                        <button onclick="imprimirPresencaAcumulada('raec')" style="margin-left:auto; padding:6px 14px; background:#3498db; color:#fff; border:none; border-radius:8px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:5px;">🖨️ Imprimir PDF</button>
+                    </div>
+                    <div id="chartRAECLinhas" style="overflow-y:auto; max-height:500px;"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ABA CADASTRO -->
+        <div id="cadastro" class="tab-content">
+            <div class="section">
+                <div class="clear-button-container">
+                    <button class="btn-clear" onclick="clearAllCadastro()">🗑️ Limpar Tudo</button>
+                </div>
+                <h2>📤 Upload de Excel para Cadastro</h2>
+                <div class="upload-area" onclick="document.getElementById('cadastroExcelInput').click()">
+                    <p>📊 Clique aqui ou arraste um arquivo Excel</p>
+                    <p style="font-size: 12px; color: #888; margin-top: 10px;">Formatos aceitos: .xlsx, .xls</p>
+                    <input type="file" id="cadastroExcelInput" accept=".xlsx,.xls" onchange="uploadCadastroExcel(event)">
+                </div>
+                <div id="cadastroMessage" class="message"></div>
+            </div>
+
+            <div class="section">
+                <h2>✍️ Cadastro Manual</h2>
+                <form class="manual-form" onsubmit="addManualPerson(event)">
+                    <div class="form-group">
+                        <label>Nome:</label>
+                        <input type="text" id="manualNome" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Ministério/Cargo:</label>
+                        <input type="text" id="manualCargo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Localidade:</label>
+                        <input type="text" id="manualLocalidade" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Cidade:</label>
+                        <input type="text" id="manualCidade" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label style="font-weight:bold; color:#2c3e50; display:block; margin-bottom:8px;">Participa das Reuniões:</label>
+                        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                            <label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer;">
+                                <input type="checkbox" id="manualRMA" checked style="width:16px;height:16px;"> RMA
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer;">
+                                <input type="checkbox" id="manualRA" style="width:16px;height:16px;"> RA
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer;">
+                                <input type="checkbox" id="manualRAEC" style="width:16px;height:16px;"> RAEC
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn btn-success">➕ Adicionar Pessoa</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="section">
+                <h2>👥 Pessoas Cadastradas</h2>
+                <!-- FILTROS CADASTRO -->
+                <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; padding:12px 14px; background:#f4f8ff; border-radius:8px; border:1px solid #d0e4f7;">
+                    <span style="font-size:13px; font-weight:bold; color:#2c3e50;">🔍 Filtrar:</span>
+                    <input type="text" id="cadastroFiltroNome" placeholder="Buscar por nome..." oninput="renderCadastroTable()"
+                        style="padding:7px 12px; border:1px solid #ccc; border-radius:6px; font-size:13px; min-width:180px;">
+                    <select id="cadastroFiltroCargo" onchange="renderCadastroTable()"
+                        style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <option value="">Todos os Ministérios/Cargos</option>
+                        <option value="Ancião">⛪ Ancião</option>
+                        <option value="Diácono">🙏 Diácono</option>
+                        <option value="Cooperador Ofício Ministerial">✝️ Coop. Ofício Ministerial</option>
+                        <option value="Cooperador de Jovens">👥 Coop. de Jovens</option>
+                            <option value="Encarregado Regional">🗺️ Encarregado Regional</option>
+                        <option value="Administração">📋 Administração</option>
+                        <option value="Conselho Fiscal">🔍 Conselho Fiscal</option>
+                        <option value="Suplente do Conselho Fiscal">🔍 Suplente C. Fiscal</option>
+                        <option value="Colaboradores">🤝 Colaboradores</option>
+                    </select>
+                    <select id="cadastroFiltroReuniao" onchange="renderCadastroTable()"
+                        style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <option value="">Todas as Reuniões</option>
+                        <option value="rma">RMA</option>
+                        <option value="ra">RA</option>
+                        <option value="raec">RAEC</option>
+                    </select>
+                    <button onclick="document.getElementById('cadastroFiltroNome').value=''; document.getElementById('cadastroFiltroCargo').value=''; document.getElementById('cadastroFiltroReuniao').value=''; renderCadastroTable();"
+                        style="padding:7px 14px; background:#e0e0e0; border:none; border-radius:6px; font-size:12px; cursor:pointer; color:#555;">✕ Limpar filtros</button>
+                    <span id="cadastroFiltroInfo" style="font-size:12px; color:#888; margin-left:auto;"></span>
+                </div>
+                <div id="pessoasCadastradas">
+                    <table id="cadastroTable">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Ministério/Cargo</th>
+                                <th>Localidade</th>
+                                <th>Cidade</th>
+                                <th style="text-align:center;">RMA</th>
+                                <th style="text-align:center;">RA</th>
+                                <th style="text-align:center;">RAEC</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cadastroTableBody">
+                            <!-- Dados serão inseridos aqui -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SEÇÃO BACKUP FIREBASE -->
+            <div class="section" id="sectionBackup">
+                <h2>☁️ Backup na Nuvem (Firebase)</h2>
+
+                <!-- Status de conexão -->
+                <div id="firebaseStatus" style="display:flex; align-items:center; gap:10px; margin-bottom:20px; padding:12px 16px; background:#f0f9ff; border-radius:8px; border:1px solid #bde0fe;">
+                    <div id="statusDot" style="width:12px; height:12px; border-radius:50%; background:#aaa;"></div>
+                    <span id="statusText" style="font-size:13px; color:#555;">Verificando conexão com Firebase...</span>
+                </div>
+
+                <!-- Sincronização automática -->
+                <div style="background:#f8fff8; border:1px solid #c6f0c6; border-radius:8px; padding:14px; margin-bottom:20px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                        <div>
+                            <strong style="color:#2c3e50;">🔄 Sincronização Automática — <span style="color:#27ae60;">ATIVA</span></strong>
+                            <p style="font-size:12px; color:#666; margin-top:4px;">Os dados são salvos automaticamente no Firebase a cada alteração. Limpar o cache do navegador não apaga seus dados.</p>
+                            <p id="ultimaSyncTxt" style="font-size:11px; color:#888; margin-top:2px;">Última sincronização: —</p>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <button onclick="sincronizarAgora()" class="btn btn-success" style="padding:8px 16px; font-size:13px;">⬆️ Sincronizar Agora</button>
+                            <button onclick="carregarDoFirebase()" class="btn" style="padding:8px 16px; font-size:13px; background:#3498db; color:white; border:none; border-radius:6px; cursor:pointer;">⬇️ Carregar do Firebase</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Criar backup manual -->
+                <div style="background:#fffbf0; border:1px solid #ffe0a0; border-radius:8px; padding:14px; margin-bottom:20px;">
+                    <strong style="color:#2c3e50;">💾 Criar Backup Manual</strong>
+                    <p style="font-size:12px; color:#666; margin-top:4px; margin-bottom:10px;">Salve um ponto de restauração com um nome personalizado.</p>
+                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                        <input type="text" id="nomeBackup" placeholder="Ex: Backup_Janeiro_2025" style="flex:1; min-width:200px; padding:8px 12px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <button onclick="criarBackup()" class="btn btn-success" style="padding:8px 18px; font-size:13px;">💾 Salvar Backup</button>
+                    </div>
+                    <div id="backupMsg" style="margin-top:8px; font-size:12px;"></div>
+                </div>
+
+                <!-- Lista de backups -->
+                <div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                        <strong style="color:#2c3e50;">📋 Backups Disponíveis</strong>
+                        <button onclick="atualizarListaBackups()" style="background:none; border:1px solid #ccc; border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer;">🔄 Atualizar lista</button>
+                    </div>
+                    <div id="listaBackups" style="font-size:13px; color:#888; font-style:italic;">Carregando backups...</div>
+                </div>
+
+                <!-- Exportar/Importar JSON local -->
+                <div style="background:#f5f5f5; border:1px solid #ddd; border-radius:8px; padding:14px; margin-top:20px;">
+                    <strong style="color:#2c3e50;">📁 Backup Local (arquivo JSON)</strong>
+                    <p style="font-size:12px; color:#666; margin-top:4px; margin-bottom:10px;">Alternativa offline: exporta ou importa um arquivo .json no seu computador.</p>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button onclick="exportarJSON()" class="btn" style="background:#6c757d; color:white; border:none; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer;">⬇️ Exportar JSON</button>
+                        <label class="btn" style="background:#6c757d; color:white; border:none; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer;">
+                            ⬆️ Importar JSON
+                            <input type="file" accept=".json" onchange="importarJSON(event)" style="display:none;">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA RMA -->
+        <div id="rma" class="tab-content">
+            <!-- FILTRO DE ANO -->
+            <div style="background: white; border-radius:8px; padding:14px 20px; margin-bottom:16px; display:flex; align-items:center; gap:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); flex-wrap:wrap;">
+                <span style="font-size:14px; font-weight:bold; color:#2c3e50;">📅 Ano:</span>
+                <div id="rmaAnoBtns" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+                <span style="font-size:12px; color:#aaa; margin-left:auto;" id="rmaAnoInfo"></span>
+                <button onclick="adicionarMesTeste('rma')" title="Adicionar mês manualmente para visualizar justificativas sem importar Excel"
+                    style="padding:5px 12px; background:#f0f4f8; border:1px dashed #aaa; border-radius:6px; font-size:11px; color:#777; cursor:pointer; white-space:nowrap;">
+                    ➕ Adicionar mês
+                </button>
+            </div>
+
+            <div class="section">
+                <div class="clear-button-container">
+                    <button class="btn-clear" onclick="clearDataForType('rma')">🗑️ Limpar RMA</button>
+                </div>
+                <h2>📤 Upload de Excel de Presença - RMA</h2>
+                <div class="upload-area" onclick="document.getElementById('rmaExcelInput').click()">
+                    <p>📊 Clique aqui ou arraste um arquivo Excel</p>
+                    <p style="font-size: 12px; color: #888; margin-top: 10px;">Formatos aceitos: .xlsx, .xls</p>
+                    <input type="file" id="rmaExcelInput" accept=".xlsx,.xls" onchange="uploadPresencaExcel(event, 'rma')">
+                </div>
+                <div id="rmaMessage" class="message"></div>
+            </div>
+
+            <div class="section" id="rmaAuditSection">
+                <h2>🔍 Auditoria de Importação - RMA</h2>
+                <div id="rmaAuditPanel">
+                    <p style="color:#aaa; font-style:italic; font-size:13px;">Nenhuma importação realizada ainda.</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🚦 Farol de Presença - RMA</h2>
+                <!-- FILTROS RMA -->
+                <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; padding:12px 14px; background:#f4f8ff; border-radius:8px; border:1px solid #d0e4f7;">
+                    <span style="font-size:13px; font-weight:bold; color:#2c3e50;">🔍 Filtrar:</span>
+                    <input type="text" id="rmaFiltroNome" placeholder="Buscar por nome..." oninput="renderFarol('rma')"
+                        style="padding:7px 12px; border:1px solid #ccc; border-radius:6px; font-size:13px; min-width:180px;">
+                    <select id="rmaFiltroCargo" onchange="renderFarol('rma')"
+                        style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <option value="">Todos os Cargos</option>
+                        <option value="Ancião">⛪ Ancião</option>
+                        <option value="Diácono">🙏 Diácono</option>
+                        <option value="Cooperador Ofício Ministerial">✝️ Coop. Ofício Ministerial</option>
+                        <option value="Cooperador de Jovens">👥 Coop. de Jovens</option>
+                            <option value="Encarregado Regional">🗺️ Encarregado Regional</option>
+                        <option value="Administração">📋 Administração</option>
+                        <option value="Conselho Fiscal">🔍 Conselho Fiscal</option>
+                        <option value="Suplente do Conselho Fiscal">🔍 Suplente C. Fiscal</option>
+                        <option value="Colaboradores">🤝 Colaboradores</option>
+                    </select>
+                    <select id="rmaFiltroMes" onchange="renderFarol('rma')"
+                        style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <option value="">Todos os Meses</option>
+                    </select>
+                    <button onclick="document.getElementById('rmaFiltroNome').value=''; document.getElementById('rmaFiltroCargo').value=''; document.getElementById('rmaFiltroMes').value=''; renderFarol('rma');"
+                        style="padding:7px 14px; background:#e0e0e0; border:none; border-radius:6px; font-size:12px; cursor:pointer; color:#555;">✕ Limpar filtros</button>
+                    <span id="rmaFiltroInfo" style="font-size:12px; color:#888; margin-left:auto;"></span>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="rmaFarolTable">
+                        <thead>
+                            <tr id="rmaFarolHeader">
+                                <th>Nome</th>
+                                <th>Ministério/Cargo</th>
+                                <th>Localidade</th>
+                                <!-- Meses serão adicionados dinamicamente -->
+                            </tr>
+                        </thead>
+                        <tbody id="rmaFarolBody">
+                            <!-- Dados serão inseridos aqui -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="export-buttons">
+                    <button class="btn btn-success" onclick="exportToExcel('rma')">📊 Exportar Excel</button>
+                    <button class="btn btn-danger" onclick="exportToPDF('rma')">📄 Exportar PDF</button>
+                    <button class="btn" style="background:#8e44ad;color:white;" onclick="exportarAusentesMes('rma')">📋 Ausentes do Mês</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA RA -->
+        <div id="ra" class="tab-content">
+            <!-- FILTRO DE ANO -->
+            <div style="background: white; border-radius:8px; padding:14px 20px; margin-bottom:16px; display:flex; align-items:center; gap:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); flex-wrap:wrap;">
+                <span style="font-size:14px; font-weight:bold; color:#2c3e50;">📅 Ano:</span>
+                <div id="raAnoBtns" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+                <span style="font-size:12px; color:#aaa; margin-left:auto;" id="raAnoInfo"></span>
+                <button onclick="adicionarMesTeste('ra')" title="Adicionar mês manualmente para visualizar justificativas sem importar Excel"
+                    style="padding:5px 12px; background:#f0f4f8; border:1px dashed #aaa; border-radius:6px; font-size:11px; color:#777; cursor:pointer; white-space:nowrap;">
+                    ➕ Adicionar mês
+                </button>
+            </div>
+
+            <div class="section">
+                <div class="clear-button-container">
+                    <button class="btn-clear" onclick="clearDataForType('ra')">🗑️ Limpar RA</button>
+                </div>
+                <h2>📤 Upload de Excel de Presença - RA</h2>
+                <div class="upload-area" onclick="document.getElementById('raExcelInput').click()">
+                    <p>📊 Clique aqui ou arraste um arquivo Excel</p>
+                    <p style="font-size: 12px; color: #888; margin-top: 10px;">Formatos aceitos: .xlsx, .xls</p>
+                    <input type="file" id="raExcelInput" accept=".xlsx,.xls" onchange="uploadPresencaExcel(event, 'ra')">
+                </div>
+                <div id="raMessage" class="message"></div>
+            </div>
+
+            <div class="section" id="raAuditSection">
+                <h2>🔍 Auditoria de Importação - RA</h2>
+                <div id="raAuditPanel">
+                    <p style="color:#aaa; font-style:italic; font-size:13px;">Nenhuma importação realizada ainda.</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🚦 Farol de Presença - RA</h2>
+                <!-- FILTROS RA -->
+                <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; padding:12px 14px; background:#f4f8ff; border-radius:8px; border:1px solid #d0e4f7;">
+                    <span style="font-size:13px; font-weight:bold; color:#2c3e50;">🔍 Filtrar:</span>
+                    <input type="text" id="raFiltroNome" placeholder="Buscar por nome..." oninput="renderFarol('ra')"
+                        style="padding:7px 12px; border:1px solid #ccc; border-radius:6px; font-size:13px; min-width:180px;">
+                    <select id="raFiltroCargo" onchange="renderFarol('ra')"
+                        style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <option value="">Todos os Cargos</option>
+                        <option value="Ancião">⛪ Ancião</option>
+                        <option value="Diácono">🙏 Diácono</option>
+                        <option value="Cooperador Ofício Ministerial">✝️ Coop. Ofício Ministerial</option>
+                        <option value="Cooperador de Jovens">👥 Coop. de Jovens</option>
+                            <option value="Encarregado Regional">🗺️ Encarregado Regional</option>
+                        <option value="Administração">📋 Administração</option>
+                        <option value="Conselho Fiscal">🔍 Conselho Fiscal</option>
+                        <option value="Suplente do Conselho Fiscal">🔍 Suplente C. Fiscal</option>
+                        <option value="Colaboradores">🤝 Colaboradores</option>
+                    </select>
+                    <select id="raFiltroMes" onchange="renderFarol('ra')"
+                        style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <option value="">Todos os Meses</option>
+                    </select>
+                    <button onclick="document.getElementById('raFiltroNome').value=''; document.getElementById('raFiltroCargo').value=''; document.getElementById('raFiltroMes').value=''; renderFarol('ra');"
+                        style="padding:7px 14px; background:#e0e0e0; border:none; border-radius:6px; font-size:12px; cursor:pointer; color:#555;">✕ Limpar filtros</button>
+                    <span id="raFiltroInfo" style="font-size:12px; color:#888; margin-left:auto;"></span>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="raFarolTable">
+                        <thead>
+                            <tr id="raFarolHeader">
+                                <th>Nome</th>
+                                <th>Ministério/Cargo</th>
+                                <th>Localidade</th>
+                                <!-- Meses serão adicionados dinamicamente -->
+                            </tr>
+                        </thead>
+                        <tbody id="raFarolBody">
+                            <!-- Dados serão inseridos aqui -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="export-buttons">
+                    <button class="btn btn-success" onclick="exportToExcel('ra')">📊 Exportar Excel</button>
+                    <button class="btn btn-danger" onclick="exportToPDF('ra')">📄 Exportar PDF</button>
+                    <button class="btn" style="background:#8e44ad;color:white;" onclick="exportarAusentesMes('ra')">📋 Ausentes do Mês</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA RAEC -->
+        <div id="raec" class="tab-content">
+            <!-- FILTRO DE ANO -->
+            <div style="background: white; border-radius:8px; padding:14px 20px; margin-bottom:16px; display:flex; align-items:center; gap:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); flex-wrap:wrap;">
+                <span style="font-size:14px; font-weight:bold; color:#2c3e50;">📅 Ano:</span>
+                <div id="raecAnoBtns" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+                <span style="font-size:12px; color:#aaa; margin-left:auto;" id="raecAnoInfo"></span>
+                <button onclick="adicionarMesTeste('raec')" title="Adicionar mês manualmente para visualizar justificativas sem importar Excel"
+                    style="padding:5px 12px; background:#f0f4f8; border:1px dashed #aaa; border-radius:6px; font-size:11px; color:#777; cursor:pointer; white-space:nowrap;">
+                    ➕ Adicionar mês
+                </button>
+            </div>
+
+            <div class="section">
+                <div class="clear-button-container">
+                    <button class="btn-clear" onclick="clearDataForType('raec')">🗑️ Limpar RAEC</button>
+                </div>
+                <h2>📤 Upload de Excel de Presença - RAEC</h2>
+                <div class="upload-area" onclick="document.getElementById('raecExcelInput').click()">
+                    <p>📊 Clique aqui ou arraste um arquivo Excel</p>
+                    <p style="font-size: 12px; color: #888; margin-top: 10px;">Formatos aceitos: .xlsx, .xls</p>
+                    <input type="file" id="raecExcelInput" accept=".xlsx,.xls" onchange="uploadPresencaExcel(event, 'raec')">
+                </div>
+                <div id="raecMessage" class="message"></div>
+            </div>
+
+            <div class="section" id="raecAuditSection">
+                <h2>🔍 Auditoria de Importação - RAEC</h2>
+                <div id="raecAuditPanel">
+                    <p style="color:#aaa; font-style:italic; font-size:13px;">Nenhuma importação realizada ainda.</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🚦 Farol de Presença - RAEC</h2>
+                <!-- FILTROS RAEC -->
+                <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; padding:12px 14px; background:#f4f8ff; border-radius:8px; border:1px solid #d0e4f7;">
+                    <span style="font-size:13px; font-weight:bold; color:#2c3e50;">🔍 Filtrar:</span>
+                    <input type="text" id="raecFiltroNome" placeholder="Buscar por nome..." oninput="renderFarol('raec')"
+                        style="padding:7px 12px; border:1px solid #ccc; border-radius:6px; font-size:13px; min-width:180px;">
+                    <select id="raecFiltroCargo" onchange="renderFarol('raec')"
+                        style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <option value="">Todos os Cargos</option>
+                        <option value="Ancião">⛪ Ancião</option>
+                        <option value="Diácono">🙏 Diácono</option>
+                        <option value="Cooperador Ofício Ministerial">✝️ Coop. Ofício Ministerial</option>
+                        <option value="Cooperador de Jovens">👥 Coop. de Jovens</option>
+                            <option value="Encarregado Regional">🗺️ Encarregado Regional</option>
+                        <option value="Administração">📋 Administração</option>
+                        <option value="Conselho Fiscal">🔍 Conselho Fiscal</option>
+                        <option value="Suplente do Conselho Fiscal">🔍 Suplente C. Fiscal</option>
+                        <option value="Colaboradores">🤝 Colaboradores</option>
+                    </select>
+                    <button onclick="document.getElementById('raecFiltroNome').value=''; document.getElementById('raecFiltroCargo').value=''; renderFarol('raec');"
+                        style="padding:7px 14px; background:#e0e0e0; border:none; border-radius:6px; font-size:12px; cursor:pointer; color:#555;">✕ Limpar filtros</button>
+                    <span id="raecFiltroInfo" style="font-size:12px; color:#888; margin-left:auto;"></span>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="raecFarolTable">
+                        <thead>
+                            <tr id="raecFarolHeader">
+                                <th>Nome</th>
+                                <th>Ministério/Cargo</th>
+                                <th>Localidade</th>
+                                <!-- Meses serão adicionados dinamicamente -->
+                            </tr>
+                        </thead>
+                        <tbody id="raecFarolBody">
+                            <!-- Dados serão inseridos aqui -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="export-buttons">
+                    <button class="btn btn-success" onclick="exportToExcel('raec')">📊 Exportar Excel</button>
+                    <button class="btn btn-danger" onclick="exportToPDF('raec')">📄 Exportar PDF</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA JUSTIFICATIVAS -->
+        <div id="justificativas" class="tab-content">
+            <div class="section">
+                <h2>📝 Gerenciamento de Justificativas de Ausência</h2>
+                <p style="color:#666; font-size:13px; margin-bottom:18px;">
+                    Lista de todas as justificativas enviadas pelo programa externo. Você pode excluir registros de teste ou inválidos.
+                </p>
+
+                <!-- Filtros -->
+                <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:18px; padding:12px 14px; background:#f4f8ff; border-radius:8px; border:1px solid #d0e4f7;">
+                    <span style="font-size:13px; font-weight:bold; color:#2c3e50;">🔍 Filtrar:</span>
+                    <input type="text" id="justFiltroNome" placeholder="Buscar por nome..." oninput="renderJustificativas()"
+                        style="padding:7px 12px; border:1px solid #ccc; border-radius:6px; font-size:13px; min-width:180px;">
+                    <select id="justFiltroTipo" onchange="renderJustificativas()"
+                        style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <option value="">Todas as Reuniões</option>
+                        <option value="rma">RMA</option>
+                        <option value="ra">RA</option>
+                        <option value="raec">RAEC</option>
+                    </select>
+                    <select id="justFiltroMotivo" onchange="renderJustificativas()"
+                        style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <option value="">Todos os Motivos</option>
+                        <option value="Viagem">✈️ Viagem</option>
+                        <option value="Trabalho">💼 Trabalho</option>
+                        <option value="Enfermidade">🏥 Enfermidade</option>
+                        <option value="Outros">📋 Outros</option>
+                    </select>
+                    <button onclick="document.getElementById('justFiltroNome').value=''; document.getElementById('justFiltroTipo').value=''; document.getElementById('justFiltroMotivo').value=''; renderJustificativas();"
+                        style="padding:7px 14px; background:#e0e0e0; border:none; border-radius:6px; font-size:12px; cursor:pointer; color:#555;">✕ Limpar</button>
+                    <button onclick="carregarJustificativasDoFirebase()" 
+                        style="padding:7px 14px; background:#3498db; color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer; margin-left:auto;">🔄 Atualizar</button>
+                </div>
+
+                <!-- Contador -->
+                <div id="justContador" style="font-size:13px; color:#888; margin-bottom:12px;"></div>
+
+                <!-- Tabela -->
+                <div style="overflow-x:auto;">
+                    <table id="justTable" style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                            <tr>
+                                <th style="background:#34495e; color:white; padding:10px 12px; text-align:left;">Nome</th>
+                                <th style="background:#34495e; color:white; padding:10px 12px; text-align:left;">Cargo</th>
+                                <th style="background:#34495e; color:white; padding:10px 12px; text-align:center;">Reunião</th>
+                                <th style="background:#34495e; color:white; padding:10px 12px; text-align:left;">Mês</th>
+                                <th style="background:#34495e; color:white; padding:10px 12px; text-align:center;">Motivo</th>
+                                <th style="background:#34495e; color:white; padding:10px 12px; text-align:left;">Observação</th>
+                                <th style="background:#34495e; color:white; padding:10px 12px; text-align:center;">Enviado em</th>
+                                <th style="background:#34495e; color:white; padding:10px 12px; text-align:center;">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="justTableBody">
+                            <tr><td colspan="8" style="text-align:center; color:#aaa; padding:30px; font-style:italic;">
+                                Carregando justificativas...
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        2026 Farol de Presença - Sistema desenvolvido por Leandro Machado - Vice Secretário de Caieiras. "Deus Abençoe a todos"
+    </footer>
+
+    <script>
+        // Registrar plugin de datalabels
+        Chart.register(ChartDataLabels);
+
+        // HIERARQUIA DE CARGOS ATUALIZADA
+        const CARGO_HIERARCHY = [
+            'Ancião',
+            'Diácono',
+            'Cooperador Ofício Ministerial',
+            'Cooperador de Jovens',
+            'Encarregado Regional',
+            'Administração',
+            'Conselho Fiscal',
+            'Suplente do Conselho Fiscal',
+            'Colaboradores'
+        ];
+
+        // FUNÇÃO PARA NORMALIZAR CARGO - AGRUPANDO TODOS OS ADM-
+        function normalizeCargo(cargo) {
+            cargo = cargo.trim();
+            // Mapeamento de variações — ORDEM IMPORTA: mais específico primeiro
+            if (cargo.includes('Ancião') || cargo.includes('Anciao')) return 'Ancião';
+            if (cargo.includes('Diácono') || cargo.includes('Diacono')) return 'Diácono';
+            if (cargo.includes('Cooperador') && (cargo.includes('Ofício') || cargo.includes('Oficio'))) return 'Cooperador Ofício Ministerial';
+            if (cargo.includes('Cooperador') && cargo.includes('Jovens')) return 'Cooperador de Jovens';
+            if (cargo.includes('Encarregado') || cargo.includes('encarregado')) return 'Encarregado Regional';
+
+            // Conselho Fiscal ANTES de Administração (Suplente deve ser verificado primeiro)
+            if ((cargo.includes('Suplente') || cargo.includes('suplente')) && cargo.includes('Conselho')) return 'Suplente do Conselho Fiscal';
+            if (cargo.includes('Conselho Fiscal') || cargo.includes('Conselho fiscal')) return 'Conselho Fiscal';
+
+            // AGRUPAR TODOS OS CARGOS COM "ADM-" EM UMA ÚNICA CATEGORIA "Administração"
+            if (cargo.includes('Adm-') || cargo.includes('ADM-') || cargo.includes('adm-') ||
+                cargo.includes('Presidente') || cargo.includes('presidente') ||
+                cargo.includes('Secretário') || cargo.includes('Secretario') || cargo.includes('secretário') ||
+                cargo.includes('Auxiliar') || cargo.includes('auxiliar')) {
+                return 'Administração';
+            }
+
+            return 'Colaboradores';
+        }
+
+        // Função para ordenar por hierarquia
+        function sortByHierarchy(items, keyExtractor) {
+            return items.sort((a, b) => {
+                const cargoA = normalizeCargo(keyExtractor(a));
+                const cargoB = normalizeCargo(keyExtractor(b));
+                const indexA = CARGO_HIERARCHY.indexOf(cargoA);
+                const indexB = CARGO_HIERARCHY.indexOf(cargoB);
+                
+                // Se não encontrado, coloca no final
+                const posA = indexA === -1 ? 999 : indexA;
+                const posB = indexB === -1 ? 999 : indexB;
+                
+                return posA - posB;
+            });
+        }
+
+        // Dados do sistema
+        let cadastroPessoas = [];
+        let rmaData = { months: [], history: [] };
+        let raData = { months: [], history: [] };
+        let raecData = { months: [], history: [] };
+        let rmcData = { months: [], history: [] };
+        let justificativasData = []; // Justificativas de ausência (programa externo)
+
+        // Ano ativo por tipo
+        let anoAtivo = { rma: null, ra: null, raec: null, rmc: null };
+
+        // Obter anos disponíveis de um tipo
+        function getAnosDisponiveis(tipo) {
+            const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : tipo === 'raec' ? raecData : rmcData;
+            const anos = new Set();
+            dataObj.months.forEach(m => {
+                const parts = m.split(' de ');
+                if (parts.length === 2) anos.add(parts[1]);
+            });
+            return [...anos].sort();
+        }
+
+        // Obter meses filtrados pelo ano ativo
+        function getMesesFiltrados(tipo) {
+            const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : tipo === 'raec' ? raecData : rmcData;
+            const ano = anoAtivo[tipo];
+            if (!ano) return dataObj.months;
+            return dataObj.months.filter(m => m.endsWith(' de ' + ano));
+        }
+
+        // Renderizar botões de ano
+        function renderAnoBtns(tipo) {
+            const container = document.getElementById(`${tipo}AnoBtns`);
+            const infoEl = document.getElementById(`${tipo}AnoInfo`);
+            if (!container) return;
+            const anos = getAnosDisponiveis(tipo);
+            if (anos.length === 0) {
+                container.innerHTML = '<span style="color:#aaa; font-size:12px; font-style:italic;">Nenhum dado importado ainda</span>';
+                if (infoEl) infoEl.textContent = '';
+                return;
+            }
+            // Definir ano ativo padrão: mais recente
+            if (!anoAtivo[tipo] || !anos.includes(anoAtivo[tipo])) {
+                anoAtivo[tipo] = anos[anos.length - 1];
+            }
+            let html = '';
+            anos.forEach(ano => {
+                const ativo = anoAtivo[tipo] === ano;
+                const mesesDoAno = getMesesFiltrados_byAno(tipo, ano).length;
+                html += `<button onclick="setAnoAtivo('${tipo}','${ano}')"
+                    style="padding:6px 16px; border-radius:20px; border:2px solid ${ativo ? '#3498db' : '#ddd'};
+                    background:${ativo ? '#3498db' : 'white'}; color:${ativo ? 'white' : '#555'};
+                    font-weight:bold; font-size:13px; cursor:pointer; transition:all 0.2s;">
+                    ${ano} <span style="font-size:10px; opacity:0.8;">(${mesesDoAno} ${mesesDoAno===1?'mês':'meses'})</span>
+                </button>`;
+            });
+            container.innerHTML = html;
+            if (infoEl) {
+                const meses = getMesesFiltrados(tipo);
+                infoEl.textContent = meses.length > 0 ? `Exibindo: ${meses.join(' · ')}` : '';
+            }
+        }
+
+        function getMesesFiltrados_byAno(tipo, ano) {
+            const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : tipo === 'raec' ? raecData : rmcData;
+            return dataObj.months.filter(m => m.endsWith(' de ' + ano));
+        }
+
+        function setAnoAtivo(tipo, ano) {
+            anoAtivo[tipo] = ano;
+            // Reset month filter dropdown
+            const mesSelect = document.getElementById(`mesGraficos${tipo.toUpperCase()}`);
+            if (mesSelect) mesSelect.value = 'todos';
+            renderAnoBtns(tipo);
+            renderFarol(tipo);
+            renderHistory(tipo);
+            if (window._presencaData && window._presencaData[tipo]) {
+                renderPresencaAcumulada(tipo);
+            }
+            updateDashboard();
+        }
+
+        // Charts
+        let chartsInstances = {};
+
+        // Cores para gráfico de linhas
+        const LINE_COLORS = [
+            'rgb(255, 99, 132)',
+            'rgb(54, 162, 235)',
+            'rgb(255, 205, 86)',
+            'rgb(75, 192, 192)',
+            'rgb(153, 102, 255)',
+            'rgb(255, 159, 64)',
+            'rgb(201, 203, 207)',
+            'rgb(83, 102, 255)',
+            'rgb(255, 99, 255)',
+            'rgb(99, 255, 132)'
+        ];
+
+        // Carregar dados — tenta Firebase primeiro, depois localStorage como fallback
+        async function loadData() {
+            // Tenta carregar do Firebase se disponível
+            if (window._firebaseReady && window._firebase) {
+                try {
+                    const dados = await window._firebase.carregarDadosPrincipais();
+                    if (dados) {
+                        aplicarDados(dados);
+                        return;
+                    }
+                } catch(e) {
+                    console.warn('Falha ao carregar do Firebase, usando localStorage:', e);
+                }
+            }
+            // Fallback: localStorage
+            const saved = localStorage.getItem('farolPresencaData');
+            if (saved) {
+                const data = JSON.parse(saved);
+                cadastroPessoas = (data.cadastroPessoas || []).map(p => ({
+                    ...p,
+                    reunioes: p.reunioes || { rma: true, ra: false, raec: false, rmc: false }
+                }));
+                rmaData = data.rmaData || { months: [], history: [] };
+                raData = data.raData || { months: [], history: [] };
+                raecData = data.raecData || { months: [], history: [] };
+                rmcData = data.rmcData || { months: [], history: [] };
+                if (data.cellOverrides) applyCellOverrides(data.cellOverrides);
+                
+                renderCadastroTable();
+                ['rma','ra','raec'].forEach(t => renderAnoBtns(t));
+                renderFarol('rma');
+                renderFarol('ra');
+                renderFarol('raec');
+                renderHistory('rma');
+                renderHistory('ra');
+                renderHistory('raec');
+                updateDashboard();
+            }
+        }
+
+        // Coletar todos os overrides manuais do localStorage
+        function getCellOverrides() {
+            const overrides = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('rma_') || key.startsWith('ra_') || key.startsWith('raec_'))) {
+                    overrides[key] = localStorage.getItem(key);
+                }
+            }
+            return overrides;
+        }
+
+        // Restaurar overrides manuais no localStorage
+        function applyCellOverrides(overrides) {
+            if (!overrides) return;
+            Object.keys(overrides).forEach(key => {
+                localStorage.setItem(key, overrides[key]);
+            });
+        }
+
+        // Salvar dados no localStorage E no Firebase automaticamente
+        function saveData() {
+            const cellOverrides = getCellOverrides();
+            const data = {
+                cadastroPessoas,
+                rmaData,
+                raData,
+                raecData,
+                rmcData,
+                cellOverrides
+            };
+            localStorage.setItem('farolPresencaData', JSON.stringify(data));
+            // Sempre sincronizar com Firebase se disponível
+            if (window._firebase) {
+                window._firebase.syncAutoSave(data).then(() => {
+                    window._lastSync = new Date();
+                    atualizarStatusSync();
+                }).catch(e => console.warn('Sync Firebase falhou:', e));
+            }
+        }
+
+        // Limpar todos os dados do cadastro
+        function clearAllCadastro() {
+            if (confirm('⚠️ ATENÇÃO! Isso vai limpar TODOS os cadastros e TODOS os dados das reuniões (RMA, RA e RAEC). Deseja continuar?')) {
+                cadastroPessoas = [];
+                rmaData = { months: [], history: [] };
+                raData = { months: [], history: [] };
+                raecData = { months: [], history: [] };
+                rmcData = { months: [], history: [] };
+                
+                // Limpar justificativas do localStorage
+                clearJustifications('rma');
+                clearJustifications('ra');
+                clearJustifications('raec');
+                
+                renderCadastroTable();
+                renderFarol('rma');
+                renderFarol('ra');
+                renderFarol('raec');
+                renderHistory('rma');
+                renderHistory('ra');
+                renderHistory('raec');
+                updateDashboard();
+                saveData();
+                
+                showMessage('cadastroMessage', 'Todos os dados foram limpos com sucesso!', 'success');
+            }
+        }
+
+        // Limpar dados de um tipo específico de reunião
+        function clearDataForType(tipo) {
+            const nomes = {
+                'rma': 'RMA (Reunião Ministério e Administração)',
+                'ra': 'RA (Reunião Administrativa)',
+                'raec': 'RAEC (Reunião Administrativa com Engenharia e Compras)',
+                'rmc': 'RMC (Reunião com os Musicais de Caieiras)'
+            };
+            
+            if (confirm(`Tem certeza que deseja limpar todos os dados de ${nomes[tipo]}?`)) {
+                if (tipo === 'rma') {
+                    rmaData = { months: [], history: [] };
+                } else if (tipo === 'ra') {
+                    raData = { months: [], history: [] };
+                } else if (tipo === 'raec') {
+                    raecData = { months: [], history: [] };
+                } else if (tipo === 'rmc') {
+                    rmcData = { months: [], history: [] };
+                }
+                
+                // Limpar justificativas do localStorage para este tipo
+                clearJustifications(tipo);
+                
+                renderFarol(tipo);
+                renderHistory(tipo);
+                updateDashboard();
+                saveData();
+                
+                showMessage(`${tipo}Message`, `Dados de ${nomes[tipo]} foram limpos com sucesso!`, 'success');
+            }
+        }
+
+        // Limpar justificativas do localStorage
+        function clearJustifications(tipo) {
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.startsWith(`${tipo}_`)) {
+                    localStorage.removeItem(key);
+                }
+            });
+        }
+
+        // Alternar abas
+        function openTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.tab-button');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'dashboard') {
+                updateDashboard();
+            }
+        }
+
+        // Mostrar mensagem
+        function showMessage(elementId, message, type) {
+            const msgElement = document.getElementById(elementId);
+            msgElement.textContent = message;
+            msgElement.className = `message ${type} show`;
+            setTimeout(() => {
+                msgElement.classList.remove('show');
+            }, 5000);
+        }
+
+        // Extrair dados do Excel
+        function parseExcelData(workbook) {
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            
+            const pessoas = [];
+            let monthYear = '';
+            
+            // Procurar pela data
+            for (let i = 0; i < Math.min(10, data.length); i++) {
+                const row = data[i];
+                const rowText = row.join(' ');
+                
+                const dateMatch = rowText.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                if (dateMatch) {
+                    const day = dateMatch[1];
+                    const month = dateMatch[2];
+                    const year = dateMatch[3];
+                    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                                       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                    monthYear = `${monthNames[parseInt(month) - 1]} de ${year}`;
+                    break;
+                }
+            }
+            
+            // Encontrar cabeçalho
+            let headerRow = -1;
+            let nomeCol = -1;
+            let cargoCol = -1;
+            let localidadeCol = -1;
+            let cidadeCol = -1;
+            let presencaCol = -1;
+            
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                for (let j = 0; j < row.length; j++) {
+                    if (row[j] === 'Nome') nomeCol = j;
+                    if (row[j] === 'Ministério/Cargo') cargoCol = j;
+                    if (row[j] === 'Localidade') localidadeCol = j;
+                    if (row[j] === 'Cidade') cidadeCol = j;
+                    if (row[j] === 'Presença') presencaCol = j;
+                }
+                if (nomeCol >= 0 && cargoCol >= 0) {
+                    headerRow = i;
+                    break;
+                }
+            }
+            
+            if (headerRow === -1) {
+                throw new Error('Cabeçalho não encontrado no Excel');
+            }
+            
+            // Processar dados
+            for (let i = headerRow + 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length === 0) continue;
+                
+                const nome = row[nomeCol];
+                const cargo = row[cargoCol];
+                const localidade = row[localidadeCol];
+                const cidade = row[cidadeCol];
+                const presenca = row[presencaCol];
+                
+                if (nome && cargo) {
+                    pessoas.push({
+                        nome: String(nome).trim(),
+                        cargo: String(cargo).trim(),
+                        localidade: String(localidade || '').trim(),
+                        cidade: String(cidade || '').trim(),
+                        presente: presenca === 'Sim' || presenca === 'sim'
+                    });
+                }
+            }
+            
+            return { pessoas, monthYear };
+        }
+
+        // Upload de Excel para cadastro
+        function uploadCadastroExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    showMessage('cadastroMessage', 'Processando Excel...', 'success');
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const { pessoas } = parseExcelData(workbook);
+                    
+                    if (pessoas.length === 0) {
+                        showMessage('cadastroMessage', 'Nenhum dado encontrado no Excel.', 'error');
+                        return;
+                    }
+                    
+                    let adicionadas = 0;
+                    pessoas.forEach(p => {
+                        const exists = cadastroPessoas.find(cp => 
+                            cp.nome.toLowerCase() === p.nome.toLowerCase()
+                        );
+                        if (!exists) {
+                            cadastroPessoas.push({
+                                nome: p.nome,
+                                cargo: p.cargo,
+                                localidade: p.localidade,
+                                cidade: p.cidade,
+                                reunioes: { rma: true, ra: false, raec: false, rmc: false }
+                            });
+                            adicionadas++;
+                        }
+                    });
+                    
+                    renderCadastroTable();
+                    renderFarol('rma');
+                    renderFarol('ra');
+                    renderFarol('raec');
+                    saveData();
+                    
+                    showMessage('cadastroMessage', `${adicionadas} pessoa(s) cadastrada(s) com sucesso!`, 'success');
+                } catch (error) {
+                    console.error(error);
+                    showMessage('cadastroMessage', 'Erro ao processar Excel: ' + error.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        // Upload de Excel de presença
+        function uploadPresencaExcel(event, tipo) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    showMessage(`${tipo}Message`, 'Processando Excel...', 'success');
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const { pessoas, monthYear } = parseExcelData(workbook);
+                    
+                    if (pessoas.length === 0 || !monthYear) {
+                        showMessage(`${tipo}Message`, 'Nenhum dado encontrado no Excel.', 'error');
+                        return;
+                    }
+                    
+                    const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : tipo === 'raec' ? raecData : rmcData;
+                    
+                    if (!dataObj.months.includes(monthYear)) {
+                        dataObj.months.push(monthYear);
+                        dataObj.months.sort((a, b) => {
+                            const [mesA, anoA] = a.split(' de ');
+                            const [mesB, anoB] = b.split(' de ');
+                            const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                            const idxA = meses.indexOf(mesA) + parseInt(anoA) * 12;
+                            const idxB = meses.indexOf(mesB) + parseInt(anoB) * 12;
+                            return idxA - idxB;
+                        });
+                    }
+                    
+                    // Guardar snapshot para "desfazer"
+                    if (!window._undoSnapshot) window._undoSnapshot = {};
+                    window._undoSnapshot[tipo] = JSON.parse(JSON.stringify(dataObj));
+
+                    // Registrar auditoria
+                    const cadastroNomes = cadastroPessoas.map(p => p.nome.toLowerCase().trim());
+                    const encontrados = pessoas.filter(p => cadastroNomes.includes(p.nome.toLowerCase().trim()));
+                    const naoEncontrados = pessoas.filter(p => !cadastroNomes.includes(p.nome.toLowerCase().trim()));
+                    const presentes = pessoas.filter(p => p.presente === true);
+                    const ausentes = pessoas.filter(p => p.presente !== true);
+
+                    if (!window._auditLog) window._auditLog = {};
+                    if (!window._auditLog[tipo]) window._auditLog[tipo] = [];
+                    window._auditLog[tipo].unshift({
+                        monthYear,
+                        arquivo: file.name,
+                        timestamp: new Date().toISOString(),
+                        totalExcel: pessoas.length,
+                        encontrados: encontrados.length,
+                        naoEncontrados: naoEncontrados.map(p => p.nome),
+                        presentes: presentes.length,
+                        ausentes: ausentes.length,
+                        snapshot: window._undoSnapshot[tipo]
+                    });
+
+                    pessoas.forEach(p => {
+                        // Verificar se há justificativa Firebase para esta pessoa neste mês
+                        const temJust = justificativasData.some(j =>
+                            j.tipo === tipo &&
+                            j.nome.toLowerCase().trim() === p.nome.toLowerCase().trim() &&
+                            j.monthYear === monthYear
+                        );
+                        const justKey = `${tipo}_${p.nome}_${monthYear}`;
+                        const cellState = localStorage.getItem(justKey);
+                        // Se já é J (Firebase ou manual), NÃO sobrescrever mesmo que Excel diga ausente
+                        if ((temJust || cellState === 'J') && !p.presente) {
+                            // Registrar no histórico mas manter J no display — não altera cellState
+                            dataObj.history.push({ monthYear, ...p, id: Date.now() + Math.random() });
+                        } else {
+                            dataObj.history.push({ monthYear, ...p, id: Date.now() + Math.random() });
+                        }
+                    });
+                    
+                    renderAnoBtns(tipo);
+                    renderFarol(tipo);
+                    renderHistory(tipo);
+                    updateDashboard();
+                    saveData();
+                    
+                    const avisoNaoEncontrados = naoEncontrados.length > 0
+                        ? ` ⚠️ ${naoEncontrados.length} nome(s) não encontrado(s) no cadastro.`
+                        : ' ✅ Todos os nomes foram encontrados no cadastro.';
+                    showMessage(`${tipo}Message`, `Excel processado! ${pessoas.length} pessoa(s) para ${monthYear}.${avisoNaoEncontrados}`, naoEncontrados.length > 0 ? 'error' : 'success');
+                } catch (error) {
+                    console.error(error);
+                    showMessage(`${tipo}Message`, 'Erro ao processar Excel: ' + error.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        // Adicionar pessoa manualmente
+        function addManualPerson(event) {
+            event.preventDefault();
+            
+            const pessoa = {
+                nome: document.getElementById('manualNome').value,
+                cargo: document.getElementById('manualCargo').value,
+                localidade: document.getElementById('manualLocalidade').value,
+                cidade: document.getElementById('manualCidade').value,
+                reunioes: {
+                    rma: document.getElementById('manualRMA').checked,
+                    ra:  document.getElementById('manualRA').checked,
+                    raec:document.getElementById('manualRAEC').checked
+                }
+            };
+            
+            const exists = cadastroPessoas.find(p => 
+                p.nome.toLowerCase() === pessoa.nome.toLowerCase()
+            );
+            
+            if (exists) {
+                showMessage('cadastroMessage', 'Esta pessoa já está cadastrada!', 'error');
+                return;
+            }
+            
+            cadastroPessoas.push(pessoa);
+            renderCadastroTable();
+            renderFarol('rma');
+            renderFarol('ra');
+            renderFarol('raec');
+            saveData();
+            
+            event.target.reset();
+            showMessage('cadastroMessage', 'Pessoa adicionada com sucesso!', 'success');
+        }
+
+        // renderCadastroTable definida abaixo com filtros e alertas
+
+        // Atualizar participação em reunião diretamente pela tabela
+        function toggleReuniao(index, tipo, valor) {
+            if (!cadastroPessoas[index].reunioes) {
+                cadastroPessoas[index].reunioes = { rma: true, ra: false, raec: false, rmc: false };
+            }
+            cadastroPessoas[index].reunioes[tipo] = valor;
+            renderFarol(tipo);
+            renderHistory(tipo);
+            if (window._presencaData && window._presencaData[tipo]) {
+                window._presencaData[tipo].cadastroPessoas = cadastroPessoas;
+                renderPresencaAcumulada(tipo);
+            }
+            saveData();
+        }
+
+        // Editar pessoa
+        function editPerson(index) {
+            const pessoa = cadastroPessoas[index];
+            const novoNome = prompt('Nome:', pessoa.nome);
+            if (novoNome === null) return;
+            
+            const novoCargo = prompt('Ministério/Cargo:', pessoa.cargo);
+            if (novoCargo === null) return;
+            
+            const novaLocalidade = prompt('Localidade:', pessoa.localidade);
+            if (novaLocalidade === null) return;
+            
+            const novaCidade = prompt('Cidade:', pessoa.cidade);
+            if (novaCidade === null) return;
+            
+            // Manter reunioes existentes
+            const reunioesAtuais = pessoa.reunioes || { rma: true, ra: false, raec: false, rmc: false };
+
+            cadastroPessoas[index] = {
+                nome: novoNome,
+                cargo: novoCargo,
+                localidade: novaLocalidade,
+                cidade: novaCidade,
+                reunioes: reunioesAtuais
+            };
+            
+            renderCadastroTable();
+            renderFarol('rma'); renderFarol('ra'); renderFarol('raec');
+            saveData();
+        }
+
+        // Deletar pessoa
+        function deletePerson(index) {
+            if (confirm('Tem certeza que deseja excluir esta pessoa?')) {
+                cadastroPessoas.splice(index, 1);
+                renderCadastroTable();
+                renderFarol('rma');
+                renderFarol('ra');
+                renderFarol('raec');
+                saveData();
+            }
+        }
+
+        // Renderizar histórico
+        function renderHistory(tipo) {
+            const panel = document.getElementById(`${tipo}AuditPanel`);
+            if (!panel) return;
+            const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : tipo === 'raec' ? raecData : rmcData;
+            const logs = (window._auditLog && window._auditLog[tipo]) || [];
+
+            // Resumo geral dos meses importados
+            const mesesImportados = getMesesFiltrados(tipo);
+
+            if (mesesImportados.length === 0 && logs.length === 0) {
+                panel.innerHTML = '<p style="color:#aaa; font-style:italic; font-size:13px;">Nenhuma importação realizada ainda.</p>';
+                return;
+            }
+
+            // Cards de resumo por mês (calculado do history)
+            let html = '';
+
+            // ── BLOCO 1: Resumo dos meses ──
+            html += `<div style="margin-bottom:20px;">
+                <div style="font-weight:bold; color:#2c3e50; margin-bottom:10px; font-size:14px;">📅 Meses com dados importados</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">`;
+
+            mesesImportados.forEach(mes => {
+                const registros = dataObj.history.filter(h => h.monthYear === mes);
+                const presentes = registros.filter(h => h.presente === true).length;
+                const ausentes = registros.filter(h => h.presente !== true).length;
+                const pct = registros.length > 0 ? Math.round((presentes / registros.length) * 100) : 0;
+                const cor = pct >= 75 ? '#27ae60' : pct >= 50 ? '#f39c12' : '#e74c3c';
+
+                // Justificativas do Firebase para este mês/tipo
+                const justMes = justificativasData.filter(j => j.tipo === tipo && j.monthYear === mes);
+                const justCount = justMes.length;
+                const justTooltip = justMes.map(j => j.nome + ' (' + j.motivo + ')').join(', ');
+
+                html += `<div style="background:#fff; border:1px solid #e0e0e0; border-radius:10px; padding:10px 14px; min-width:180px; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                    <div style="font-weight:bold; color:#2c3e50; font-size:13px;">${mes}</div>
+                    <div style="margin-top:6px; font-size:12px; color:#555;">
+                        <span style="color:#27ae60;">✓ ${presentes} presentes</span> &nbsp;
+                        <span style="color:#e74c3c;">✗ ${ausentes} ausentes</span>
+                    </div>
+                    <div style="margin-top:4px;">
+                        <span style="font-size:12px; font-weight:bold; color:${cor};">${pct}% de presença</span>
+                    </div>
+                    ${justCount > 0 ? `<div style="margin-top:6px; padding:5px 8px; background:#fff8e1; border:1px solid #ffe082; border-radius:6px; font-size:11px; color:#795548;">
+                        📝 <strong>${justCount} justificativa${justCount > 1 ? 's' : ''}</strong> recebida${justCount > 1 ? 's' : ''}
+                        <span title="${justTooltip}" style="cursor:help; color:#3498db; margin-left:4px;" title="${justTooltip}">ℹ️ ver nomes</span>
+                    </div>` : ''}
+                    <div style="margin-top:8px;">
+                        <button onclick="desfazerImportacao('${tipo}','${mes}')" style="font-size:11px; background:#fff3f3; color:#e74c3c; border:1px solid #e74c3c; border-radius:5px; padding:3px 8px; cursor:pointer;">↩️ Desfazer importação</button>
+                    </div>
+                </div>`;
+            });
+            html += `</div></div>`;
+
+
+            panel.innerHTML = html;
+        }
+
+        // Desfazer importação de um mês específico
+        function desfazerImportacao(tipo, monthYear) {
+            if (!confirm(`Remover todos os dados de "${monthYear}" da aba ${tipo.toUpperCase()}? Esta ação não pode ser desfeita.`)) return;
+            const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : tipo === 'raec' ? raecData : rmcData;
+            dataObj.history = dataObj.history.filter(h => h.monthYear !== monthYear);
+            dataObj.months = dataObj.months.filter(m => m !== monthYear);
+            renderAnoBtns(tipo);
+            renderFarol(tipo);
+            renderHistory(tipo);
+            updateDashboard();
+            saveData();
+        }
+
+        // Adicionar mês manualmente (sem Excel) — útil para visualizar justificativas
+        function adicionarMesTeste(tipo) {
+            const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                           'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+            const agora = new Date();
+            const mesAtual = MESES[agora.getMonth()] + ' de ' + agora.getFullYear();
+
+            const entrada = prompt(
+                `Adicionar mês à aba ${tipo.toUpperCase()}.
+
+Formato: "Março de 2025"
+Deixe em branco para usar o mês atual (${mesAtual}):`,
+                mesAtual
+            );
+            if (entrada === null) return; // cancelou
+
+            const val = entrada.trim() || mesAtual;
+
+            // Validar formato
+            const partes = val.split(' de ');
+            if (partes.length !== 2 || !MESES.includes(partes[0]) || isNaN(parseInt(partes[1]))) {
+                alert('Formato inválido. Use: "Março de 2025"');
+                return;
+            }
+
+            const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : tipo === 'raec' ? raecData : rmcData;
+            if (dataObj.months.includes(val)) {
+                alert(`O mês "${val}" já existe na aba ${tipo.toUpperCase()}.`);
+                return;
+            }
+
+            dataObj.months.push(val);
+            dataObj.months.sort((a, b) => {
+                const [mesA, anoA] = a.split(' de ');
+                const [mesB, anoB] = b.split(' de ');
+                const idxA = MESES.indexOf(mesA) + parseInt(anoA) * 12;
+                const idxB = MESES.indexOf(mesB) + parseInt(anoB) * 12;
+                return idxA - idxB;
+            });
+
+            renderAnoBtns(tipo);
+            renderFarol(tipo);
+            renderHistory(tipo);
+            updateDashboard();
+            saveData();
+        }
+
+        // Renderizar farol de presença
+        function renderFarol(tipo) {
+            const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : tipo === 'raec' ? raecData : rmcData;
+            const header = document.getElementById(`${tipo}FarolHeader`);
+            const tbody = document.getElementById(`${tipo}FarolBody`);
+            
+            while (header.children.length > 3) {
+                header.removeChild(header.lastChild);
+            }
+            tbody.innerHTML = '';
+            
+            popularFiltroMes(tipo);
+            const filtroMesEl2 = document.getElementById(`${tipo}FiltroMes`);
+            const filtroMesSel = filtroMesEl2 ? filtroMesEl2.value : '';
+            let mesesVisiveis = getMesesFiltrados(tipo);
+            if (filtroMesSel) mesesVisiveis = mesesVisiveis.filter(m => m === filtroMesSel);
+            mesesVisiveis.forEach(month => {
+                const th = document.createElement('th');
+                th.textContent = month;
+                th.style.minWidth = '100px';
+                header.appendChild(th);
+            });
+            
+            // Aplicar filtros de nome e cargo
+            const filtroNomeEl = document.getElementById(`${tipo}FiltroNome`);
+            const filtroCargoEl = document.getElementById(`${tipo}FiltroCargo`);
+            const filtroNome = filtroNomeEl ? filtroNomeEl.value.trim().toLowerCase() : '';
+            const filtroCargo = filtroCargoEl ? filtroCargoEl.value : '';
+
+            let pessoasDoTipo = cadastroPessoas.filter(p => !p.reunioes || p.reunioes[tipo] !== false);
+            if (filtroNome) pessoasDoTipo = pessoasDoTipo.filter(p => p.nome.toLowerCase().includes(filtroNome));
+            if (filtroCargo) pessoasDoTipo = pessoasDoTipo.filter(p => normalizeCargo(p.cargo) === filtroCargo);
+
+            // Atualizar contador de resultado
+            const infoEl = document.getElementById(`${tipo}FiltroInfo`);
+            if (infoEl) {
+                const total = cadastroPessoas.filter(p => !p.reunioes || p.reunioes[tipo] !== false).length;
+                infoEl.textContent = (filtroNome || filtroCargo) ? `Exibindo ${pessoasDoTipo.length} de ${total} pessoa(s)` : `${total} pessoa(s)`;
+            }
+
+            const pessoasOrdenadas = sortByHierarchy([...pessoasDoTipo], p => p.cargo);
+
+            pessoasOrdenadas.forEach(pessoa => {
+                const tr = document.createElement('tr');
+                
+                const consec = getConsecutivasAtuais(tipo, pessoa);
+                const alertaFarol = consec >= 4 ? `<span class="alerta-consecutivo">⚠️ ${consec}x</span>` : '';
+                tr.innerHTML = `
+                    <td>${pessoa.nome}${alertaFarol}</td>
+                    <td>${pessoa.cargo}</td>
+                    <td>${pessoa.localidade}</td>
+                `;
+                
+                mesesVisiveis.forEach(month => {
+                    const td = document.createElement('td');
+                    td.className = 'presence-cell';
+                    
+                    const presente = dataObj.history.find(h => 
+                        h.monthYear === month && 
+                        h.nome.toLowerCase() === pessoa.nome.toLowerCase() &&
+                        h.presente === true
+                    );
+                    
+                    const justKey = `${tipo}_${pessoa.nome}_${month}`;
+                    const cellState = localStorage.getItem(justKey); // 'J', 'P', 'A', ou null
+
+                    // Verificar justificativa no Firebase (tem prioridade máxima)
+                    const temJustificativaFirebase = justificativasData.some(j =>
+                        j.tipo === tipo &&
+                        j.nome.toLowerCase().trim() === pessoa.nome.toLowerCase().trim() &&
+                        j.monthYear === month
+                    );
+
+                    if (temJustificativaFirebase || cellState === 'J') {
+                        // Justificado via Firebase ou manual — não pode ser sobrescrito pelo Excel
+                        if (temJustificativaFirebase && cellState !== 'J') {
+                            localStorage.setItem(justKey, 'J');
+                        }
+                        const just = justificativasData.find(j =>
+                            j.tipo === tipo &&
+                            j.nome.toLowerCase().trim() === pessoa.nome.toLowerCase().trim() &&
+                            j.monthYear === month
+                        );
+                        td.classList.add('justified');
+                        td.textContent = 'J';
+                        td.title = just ? `Justificativa: ${just.motivo}${just.observacao ? ' — ' + just.observacao : ''}\nData envio: ${just.data || ''}` : 'Justificado';
+                        td.style.cursor = 'pointer';
+                        td.onclick = function(e) { showPresencePopup(e, td, justKey); };
+                    } else if (cellState === 'A') {
+                        td.classList.add('absent');
+                        td.textContent = '';
+                        td.style.cursor = 'pointer';
+                        td.onclick = function(e) { showPresencePopup(e, td, justKey); };
+                    } else if (presente && !cellState) {
+                        td.classList.add('present');
+                        td.textContent = '✓';
+                        td.style.cursor = 'pointer';
+                        td.onclick = function(e) { showPresencePopup(e, td, justKey); };
+                    } else if (cellState === 'P') {
+                        td.classList.add('present-manual');
+                        td.textContent = '✓';
+                        td.style.cursor = 'pointer';
+                        td.onclick = function(e) { showPresencePopup(e, td, justKey); };
+                    } else {
+                        td.classList.add('absent');
+                        td.textContent = '';
+                        setAbsentClick(td, justKey);
+                    }
+                    
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Exportar para Excel
+        function exportToExcel(tipo) {
+            const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : tipo === 'raec' ? raecData : rmcData;
+            
+            const exportData = [];
+            const header = ['Nome', 'Ministério/Cargo', 'Localidade', ...dataObj.months];
+            exportData.push(header);
+            
+            const pessoasExport = sortByHierarchy(
+                cadastroPessoas.filter(p => !p.reunioes || p.reunioes[tipo] !== false),
+                p => p.cargo
+            );
+            pessoasExport.forEach(pessoa => {
+                const row = [pessoa.nome, pessoa.cargo, pessoa.localidade];
+                
+                dataObj.months.forEach(month => {
+                    const presente = dataObj.history.find(h => 
+                        h.monthYear === month && 
+                        h.nome.toLowerCase() === pessoa.nome.toLowerCase() &&
+                        h.presente === true
+                    );
+                    
+                    const justKey = `${tipo}_${pessoa.nome}_${month}`;
+                    const cellState = localStorage.getItem(justKey);
+                    
+                    if (cellState === 'A') {
+                        row.push('N');
+                    } else if (presente || cellState === 'P') {
+                        row.push('S');
+                    } else if (cellState === 'J') {
+                        row.push('J');
+                    } else {
+                        row.push('N');
+                    }
+                });
+                
+                exportData.push(row);
+            });
+            
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Farol de Presença');
+            XLSX.writeFile(wb, `Farol_Presenca_${tipo.toUpperCase()}.xlsx`);
+        }
+
+        // Exportar para PDF
+        function exportToPDF(tipo) {
+            const table = document.getElementById(`${tipo}FarolTable`);
+            
+            html2canvas(table, {
+                scale: 2,
+                logging: false
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                const imgWidth = 280;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+                pdf.save(`Farol_Presenca_${tipo.toUpperCase()}.pdf`);
+            });
+        }
+
+        // Ano ativo no filtro global do dashboard
+        let dashAnoAtivo = 'todos';
+
+        // Coletar todos os anos disponíveis nos 3 tipos
+        function getDashAnos() {
+            const anos = new Set();
+            ['rma','ra','raec'].forEach(tipo => {
+                const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : raecData;
+                dataObj.months.forEach(m => {
+                    const partes = m.split(' de ');
+                    if (partes.length === 2) anos.add(partes[1]);
+                });
+            });
+            return Array.from(anos).sort();
+        }
+
+        // Renderizar botões de ano no filtro global do dashboard
+        function renderDashAnoBtns() {
+            const container = document.getElementById('dashAnoBtns');
+            if (!container) return;
+            const anos = getDashAnos();
+            // Se o ano ativo não existe mais, resetar para "todos"
+            if (dashAnoAtivo !== 'todos' && !anos.includes(dashAnoAtivo)) {
+                dashAnoAtivo = 'todos';
+            }
+            let html = `<button onclick="setDashAno('todos')"
+                style="padding:6px 16px; border-radius:20px; border:2px solid ${dashAnoAtivo === 'todos' ? '#3498db' : '#ddd'};
+                background:${dashAnoAtivo === 'todos' ? '#3498db' : 'white'}; color:${dashAnoAtivo === 'todos' ? 'white' : '#555'};
+                font-weight:bold; font-size:13px; cursor:pointer; transition:all 0.2s;">
+                Todos os Anos
+            </button>`;
+            anos.forEach(ano => {
+                const ativo = dashAnoAtivo === ano;
+                html += `<button onclick="setDashAno('${ano}')"
+                    style="padding:6px 16px; border-radius:20px; border:2px solid ${ativo ? '#3498db' : '#ddd'};
+                    background:${ativo ? '#3498db' : 'white'}; color:${ativo ? 'white' : '#555'};
+                    font-weight:bold; font-size:13px; cursor:pointer; transition:all 0.2s;">
+                    ${ano}
+                </button>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function setDashAno(ano) {
+            dashAnoAtivo = ano;
+            renderDashAnoBtns();
+            updateDashboardCards();
+            updateChartsForType('rma', rmaData);
+            updateChartsForType('ra', raData);
+            updateChartsForType('raec', raecData);
+        }
+
+        // Filtrar meses de um tipo pelo ano ativo do dashboard
+        function getMesesDashFiltrados(tipo) {
+            const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : raecData;
+            if (dashAnoAtivo === 'todos') return dataObj.months;
+            return dataObj.months.filter(m => m.endsWith(' de ' + dashAnoAtivo));
+        }
+
+        // Atualizar apenas os cartões do dashboard
+        function updateDashboardCards() {
+            document.getElementById('totalRMA').textContent = getMesesDashFiltrados('rma').length;
+            document.getElementById('totalRA').textContent = getMesesDashFiltrados('ra').length;
+            document.getElementById('totalRAEC').textContent = getMesesDashFiltrados('raec').length;
+        }
+
+        // Atualizar Dashboard
+        function updateDashboard() {
+            renderDashAnoBtns();
+            updateDashboardCards();
+            updateChartsForType('rma', rmaData);
+            updateChartsForType('ra', raData);
+            updateChartsForType('raec', raecData);
+        }
+
+        // Atualizar gráficos por tipo
+        function updateChartsForType(tipo, dataObj) {
+            const tipoUp = tipo.toUpperCase();
+
+            // ── Sincronizar dropdown de mês ──
+            const mesSelect = document.getElementById(`mesGraficos${tipoUp}`);
+            if (mesSelect) {
+                const mesesDisponiveis = getMesesDashFiltrados(tipo);
+                const valorAtual = mesSelect.value;
+                mesSelect.innerHTML = '<option value="todos">Todos os meses</option>';
+                mesesDisponiveis.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    if (m === valorAtual) opt.selected = true;
+                    mesSelect.appendChild(opt);
+                });
+            }
+
+            // ── Determinar meses a usar (todos ou só o selecionado) ──
+            const mesSelecionado = mesSelect ? mesSelect.value : 'todos';
+            const mesesBase = getMesesDashFiltrados(tipo);
+            const mesesGrafico = (mesSelecionado === 'todos') ? mesesBase : [mesSelecionado];
+            const labelMes = (mesSelecionado === 'todos') ? 'Todos os Meses' : mesSelecionado;
+
+            // ── Atualizar títulos ──
+            const h3Min = document.getElementById(`h3${tipoUp}Ministerio`);
+            if (h3Min) h3Min.textContent = `Quantidade de Participações por Ministério/Cargo (${tipoUp}) — ${labelMes}`;
+            const h3Piz = document.getElementById(`h3${tipoUp}Pizza`);
+            if (h3Piz) h3Piz.textContent = `Percentual de Presença vs Ausência (${tipoUp}) — ${labelMes}`;
+
+            // Gráfico de barras - usa o CARGO DO CADASTRO (não do histórico) para evitar duplicatas
+            const pessoasParaEstatistica = cadastroPessoas.filter(p => !p.reunioes || p.reunioes[tipo] !== false);
+            const ministerioStats = {};
+            const ministerioTotal = {};
+            pessoasParaEstatistica.forEach(pessoa => {
+                const cargoNorm = normalizeCargo(pessoa.cargo);
+                // Total cadastrado por cargo (conta cada pessoa uma vez)
+                ministerioTotal[cargoNorm] = (ministerioTotal[cargoNorm] || 0) + 1;
+                // Contagem de comparecimentos por cargo
+                mesesGrafico.forEach(month => {
+                    const presente = dataObj.history.find(h =>
+                        h.monthYear === month &&
+                        h.nome.toLowerCase().trim() === pessoa.nome.toLowerCase().trim() &&
+                        h.presente === true
+                    );
+                    const manualP = localStorage.getItem(`${tipo}_${pessoa.nome}_${month}`) === 'P';
+                    if (presente || manualP) {
+                        ministerioStats[cargoNorm] = (ministerioStats[cargoNorm] || 0) + 1;
+                    }
+                });
+            });
+            
+            // Ordenar por hierarquia
+            const todosCargosCombinados = new Set([...Object.keys(ministerioTotal), ...Object.keys(ministerioStats)]);
+            const ministerioEntries = [...todosCargosCombinados].map(cargo => [cargo, ministerioStats[cargo] || 0]);
+            const sortedMinisterio = sortByHierarchy(ministerioEntries, ([cargo]) => cargo);
+            const ministerioLabels = sortedMinisterio.map(([cargo]) => cargo);
+            const ministerioValues = sortedMinisterio.map(([cargo]) => ministerioStats[cargo] || 0);
+            const ministerioTotalValues = sortedMinisterio.map(([cargo]) => ministerioTotal[cargo] || 0);
+            
+            const ctxMinisterio = document.getElementById(`chart${tipoUp}Ministerio`);
+            if (chartsInstances[`${tipo}Ministerio`]) {
+                chartsInstances[`${tipo}Ministerio`].destroy();
+            }
+            chartsInstances[`${tipo}Ministerio`] = new Chart(ctxMinisterio, {
+                type: 'bar',
+                data: {
+                    labels: ministerioLabels,
+                    datasets: [
+                        {
+                            label: 'Total Cadastrado',
+                            data: ministerioTotalValues,
+                            backgroundColor: 'rgba(189, 189, 189, 0.7)',
+                            borderColor: 'rgba(140, 140, 140, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Compareceram',
+                            data: ministerioValues,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { top: 30 } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { display: false },
+                            ticks: { display: false },
+                            border: { display: false }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 12 },
+                                padding: 16
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 2,
+                            formatter: (value) => value,
+                            color: '#2c3e50',
+                            font: { weight: 'bold', size: 12 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: function(items) {
+                                    if (!items.length) return [];
+                                    const idx = items[0].dataIndex;
+                                    const cargo = ministerioLabels[idx];
+                                    const total = ministerioTotal[cargo] || 0;
+                                    const comp = ministerioStats[cargo] || 0;
+                                    const pct = total > 0 ? Math.round((comp / total) * 100) : 0;
+                                    return [`Presença: ${pct}%`];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // GRÁFICO DE PIZZA - COM VALORES INTEIROS
+            let totalPresentes = 0;
+            let totalAusentes = 0;
+            
+            const pessoasPizza = cadastroPessoas.filter(p => !p.reunioes || p.reunioes[tipo] !== false);
+            mesesGrafico.forEach(month => {
+                pessoasPizza.forEach(pessoa => {
+                    const presente = dataObj.history.find(h => 
+                        h.monthYear === month && 
+                        h.nome.toLowerCase() === pessoa.nome.toLowerCase() &&
+                        h.presente === true
+                    );
+                    const manualP = localStorage.getItem(`${tipo}_${pessoa.nome}_${month}`) === 'P';
+                    
+                    if (presente || manualP) {
+                        totalPresentes++;
+                    } else {
+                        totalAusentes++;
+                    }
+                });
+            });
+            
+            const ctxPizza = document.getElementById(`chart${tipoUp}Pizza`);
+            if (chartsInstances[`${tipo}Pizza`]) {
+                chartsInstances[`${tipo}Pizza`].destroy();
+            }
+            
+            const total = totalPresentes + totalAusentes;
+            // ARREDONDAR PARA VALORES INTEIROS
+            const percentPresentes = total > 0 ? Math.round((totalPresentes / total) * 100) : 0;
+            const percentAusentes = total > 0 ? Math.round((totalAusentes / total) * 100) : 0;
+            
+            chartsInstances[`${tipo}Pizza`] = new Chart(ctxPizza, {
+                type: 'pie',
+                data: {
+                    labels: ['Presentes', 'Ausentes'],
+                    datasets: [{
+                        data: [totalPresentes, totalAusentes],
+                        backgroundColor: [
+                            'rgba(39, 174, 96, 0.8)',
+                            'rgba(231, 76, 60, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(39, 174, 96, 1)',
+                            'rgba(231, 76, 60, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                const label = ctx.chart.data.labels[ctx.dataIndex];
+                                const percent = ctx.dataIndex === 0 ? percentPresentes : percentAusentes;
+                                // EXIBIR VALORES INTEIROS
+                                return `${label}\n${value} (${percent}%)`;
+                            },
+                            color: '#fff',
+                            font: { weight: 'bold', size: 14 }
+                        }
+                    }
+                }
+            });
+            
+            // Armazenar dados para renderPresencaAcumulada
+            if (!window._presencaData) window._presencaData = {};
+            window._presencaData[tipo] = { dataObj, cadastroPessoas };
+            renderPresencaAcumulada(tipo);
+        }
+
+        function renderPresencaAcumulada(tipo) {
+            const stored = window._presencaData && window._presencaData[tipo];
+            if (!stored) return;
+            const { dataObj, cadastroPessoas } = stored;
+            const container = document.getElementById(`chart${tipo.toUpperCase()}Linhas`);
+            if (!container) return;
+
+            const mesesFiltrados = getMesesDashFiltrados(tipo);
+            const totalReunioes = mesesFiltrados.length || 1;
+            const sortEl = document.getElementById(`sort${tipo.toUpperCase()}`);
+            const filterEl = document.getElementById(`filter${tipo.toUpperCase()}`);
+            const semaforoEl = document.getElementById(`semaforoFilter${tipo.toUpperCase()}`);
+            const sortVal = sortEl ? sortEl.value : 'hierarquia';
+            const filterVal = filterEl ? filterEl.value : 'todos';
+            const semaforoVal = semaforoEl ? semaforoEl.value : 'todos';
+
+            // Calcular presenças por pessoa — só quem participa desta reunião
+            const cadastroFiltrado = cadastroPessoas.filter(p => !p.reunioes || p.reunioes[tipo] !== false);
+            let pessoas = cadastroFiltrado.map(pessoa => {
+                let total = 0;
+                mesesFiltrados.forEach(month => {
+                    const presente = dataObj.history.find(h =>
+                        h.monthYear === month &&
+                        h.nome.toLowerCase() === pessoa.nome.toLowerCase() &&
+                        h.presente === true
+                    );
+                    const manualP = localStorage.getItem(`${tipo}_${pessoa.nome}_${month}`) === 'P';
+                    if (presente || manualP) total++;
+                });
+                const cargoNorm = normalizeCargo(pessoa.cargo || '');
+                return { nome: pessoa.nome, cargo: pessoa.cargo || '', cargoNorm, total, pct: totalReunioes > 0 ? (total / totalReunioes) * 100 : 0 };
+            });
+
+            // Filtrar por cargo
+            if (filterVal !== 'todos') {
+                pessoas = pessoas.filter(p => p.cargoNorm === filterVal);
+            }
+
+            // Filtrar por semáforo
+            if (semaforoVal === 'criticos') pessoas = pessoas.filter(p => p.pct < 50);
+            else if (semaforoVal === 'atencao') pessoas = pessoas.filter(p => p.pct >= 50 && p.pct <= 75);
+            else if (semaforoVal === 'bons') pessoas = pessoas.filter(p => p.pct > 75);
+
+            // Ordenar
+            if (sortVal === 'hierarquia' || sortVal === 'nome') {
+                // Ordenar por hierarquia de cargo, depois por nome dentro do cargo
+                pessoas = sortByHierarchy(pessoas, p => p.cargo);
+                if (sortVal === 'nome') pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
+            } else if (sortVal === 'desc') {
+                pessoas.sort((a, b) => b.total - a.total);
+            } else if (sortVal === 'asc') {
+                pessoas.sort((a, b) => a.total - b.total);
+            }
+
+            if (pessoas.length === 0) {
+                container.innerHTML = '<p style="color:#888; padding:20px; text-align:center;">Nenhum dado encontrado.</p>';
+                return;
+            }
+
+            // Linha de referência 50%
+            const ref50 = 50;
+
+            // Render HTML
+            const rowHeight = 38;
+            const barAreaW = 65; // % da linha para a barra
+
+            let html = `
+            <div style="font-family:Arial,sans-serif; font-size:13px;">
+                <div style="display:flex; align-items:center; margin-bottom:8px; gap:16px; padding: 0 8px;">
+                    <div style="flex:0 0 200px; font-weight:bold; color:#555;">Pessoa</div>
+                    <div style="flex:1; position:relative; height:18px;">
+                        <!-- Referência 50% -->
+                        <div style="position:absolute; left:50%; top:0; height:100%; border-left:2px dashed #e67e22; z-index:2;">
+                            <span style="position:absolute; top:-2px; left:4px; font-size:11px; color:#e67e22; white-space:nowrap; font-weight:bold;">50%</span>
+                        </div>
+                        <!-- Referência 75% -->
+                        <div style="position:absolute; left:75%; top:0; height:100%; border-left:2px dashed #27ae60; z-index:2;">
+                            <span style="position:absolute; top:-2px; left:4px; font-size:11px; color:#27ae60; white-space:nowrap; font-weight:bold;">75%</span>
+                        </div>
+                        <div style="position:absolute; right:0; top:0; font-size:11px; color:#888;">${totalReunioes} reuniões</div>
+                    </div>
+                    <div style="flex:0 0 70px; text-align:center; font-weight:bold; color:#555;">Presenças</div>
+                </div>`;
+
+            pessoas.forEach((p, i) => {
+                const pct = Math.min(p.pct, 100);
+                let color, badge;
+                if (pct < 50) { color = '#e74c3c'; badge = '🔴'; }
+                else if (pct <= 75) { color = '#f39c12'; badge = '🟡'; }
+                else { color = '#27ae60'; badge = '🟢'; }
+
+                const bg = i % 2 === 0 ? '#f9f9f9' : '#ffffff';
+
+                html += `
+                <div style="display:flex; align-items:center; padding:4px 8px; background:${bg}; border-radius:4px; margin-bottom:2px; min-height:36px;">
+                    <div style="flex:0 0 240px; font-size:12px; color:#2c3e50; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${p.nome} — ${p.cargoNorm}">
+                        ${badge} ${p.nome}
+                        <span style="display:block; font-size:10px; color:#888; margin-top:1px;">${p.cargoNorm}</span>
+                    </div>
+                    <div style="flex:1; position:relative; height:22px; background:#e8e8e8; border-radius:11px; overflow:visible;">
+                        <div style="position:absolute; left:0; top:0; height:100%; width:${pct}%; background:${color}; border-radius:11px; transition:width 0.4s ease;"></div>
+                        <!-- Linha 50% -->
+                        <div style="position:absolute; left:50%; top:-4px; height:30px; border-left:2px dashed rgba(230,126,34,0.7); z-index:3;"></div>
+                        <!-- Linha 75% -->
+                        <div style="position:absolute; left:75%; top:-4px; height:30px; border-left:2px dashed rgba(39,174,96,0.7); z-index:3;"></div>
+                    </div>
+                    <div style="flex:0 0 70px; text-align:center; font-weight:bold; color:${color}; font-size:14px;">${p.total}<span style="font-size:11px; color:#999; font-weight:normal;">/${totalReunioes}</span></div>
+                </div>`;
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        // ── Salvar presença acumulada como PDF (imagem) ──
+        async function imprimirPresencaAcumulada(tipo) {
+            const tipoUp = tipo.toUpperCase();
+            const container = document.getElementById(`chart${tipoUp}Linhas`);
+            if (!container || !container.innerHTML.trim()) {
+                alert('Nenhum dado para exportar.');
+                return;
+            }
+
+            // Carregar libs dinamicamente se necessário
+            if (!window.html2canvas) {
+                await new Promise((res, rej) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                    s.onload = res; s.onerror = rej;
+                    document.head.appendChild(s);
+                });
+            }
+            if (!window.jspdf) {
+                await new Promise((res, rej) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                    s.onload = res; s.onerror = rej;
+                    document.head.appendChild(s);
+                });
+            }
+
+            const h3El = document.getElementById(`h3${tipoUp}Linhas`);
+            const titulo = h3El ? h3El.textContent : `Presença Acumulada — ${tipoUp}`;
+
+            // Remover scroll temporariamente para capturar tudo
+            const oldOverflow = container.style.overflowY;
+            const oldMaxHeight = container.style.maxHeight;
+            container.style.overflowY = 'visible';
+            container.style.maxHeight = 'none';
+
+            try {
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    useCORS: true,
+                    logging: false
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pageW = 210; // A4 mm
+                const pageH = 297;
+                const margin = 10;
+                const imgW = pageW - margin * 2;
+                const imgH = (canvas.height * imgW) / canvas.width;
+
+                const pdf = new jsPDF({ orientation: imgH > pageH - 30 ? 'p' : 'p', unit: 'mm', format: 'a4' });
+
+                // Título no PDF
+                pdf.setFontSize(11);
+                pdf.setTextColor(44, 62, 80);
+                pdf.text(titulo, margin, margin + 4);
+                pdf.setFontSize(8);
+                pdf.setTextColor(150, 150, 150);
+                pdf.text('Gerado em: ' + new Date().toLocaleString('pt-BR'), margin, margin + 9);
+
+                // Quebrar em páginas se necessário
+                const startY = margin + 14;
+                const availH = pageH - startY - margin;
+                let yPos = startY;
+                let srcY = 0;
+                const srcFullH = canvas.height;
+                const pxPerMm = canvas.width / imgW;
+
+                while (srcY < srcFullH) {
+                    const sliceH = Math.min(availH * pxPerMm, srcFullH - srcY);
+                    const sliceCanvas = document.createElement('canvas');
+                    sliceCanvas.width = canvas.width;
+                    sliceCanvas.height = sliceH;
+                    sliceCanvas.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+                    const sliceData = sliceCanvas.toDataURL('image/png');
+                    const sliceHmm = sliceH / pxPerMm;
+                    pdf.addImage(sliceData, 'PNG', margin, yPos, imgW, sliceHmm);
+                    srcY += sliceH;
+                    if (srcY < srcFullH) {
+                        pdf.addPage();
+                        yPos = margin;
+                    }
+                }
+
+                pdf.save(`presenca_acumulada_${tipo.toLowerCase()}_${new Date().toISOString().slice(0,10)}.pdf`);
+            } finally {
+                container.style.overflowY = oldOverflow;
+                container.style.maxHeight = oldMaxHeight;
+            }
+        }
+
+        // Expor dados do sistema para o Firebase
+        window._getSystemData = function() {
+            return { cadastroPessoas, rmaData, raData, raecData, rmcData };
+        };
+
+        window._lastSync = null;
+
+        function atualizarStatusSync() {
+            const el = document.getElementById('ultimaSyncTxt');
+            if (el && window._lastSync) {
+                el.textContent = 'Última sincronização: ' + window._lastSync.toLocaleString('pt-BR');
+            }
+        }
+
+        async function sincronizarAgora() {
+            const msg = document.getElementById('backupMsg');
+            if (!window._firebase) { if(msg) msg.innerHTML = '<span style="color:red">Firebase não conectado.</span>'; return; }
+            try {
+                if(msg) msg.innerHTML = '<span style="color:#888">⏳ Sincronizando...</span>';
+                await window._firebase.syncAutoSave({ cadastroPessoas, rmaData, raData, raecData, rmcData });
+                window._lastSync = new Date();
+                atualizarStatusSync();
+                if(msg) msg.innerHTML = '<span style="color:green">✅ Sincronizado com sucesso!</span>';
+                setTimeout(() => { if(msg) msg.innerHTML = ''; }, 3000);
+            } catch(e) {
+                if(msg) msg.innerHTML = '<span style="color:red">❌ Erro ao sincronizar: ' + e.message + '</span>';
+            }
+        }
+
+        async function carregarDoFirebase() {
+            if (!window._firebase) { alert('Firebase não conectado.'); return; }
+            if (!confirm('⚠️ Isso vai substituir TODOS os dados locais pelos dados do Firebase. Continuar?')) return;
+            try {
+                const dados = await window._firebase.carregarDadosPrincipais();
+                if (!dados) { alert('Nenhum dado encontrado no Firebase.'); return; }
+                aplicarDados(dados);
+                alert('✅ Dados carregados do Firebase com sucesso!');
+            } catch(e) {
+                alert('❌ Erro ao carregar do Firebase: ' + e.message);
+            }
+        }
+
+        function aplicarDados(dados) {
+            cadastroPessoas = (dados.cadastroPessoas || []).map(p => ({
+                ...p,
+                reunioes: p.reunioes || { rma: true, ra: false, raec: false }
+            }));
+            rmaData = dados.rmaData || { months: [], history: [] };
+            raData = dados.raData || { months: [], history: [] };
+            raecData = dados.raecData || { months: [], history: [] };
+            rmcData = dados.rmcData || { months: [], history: [] };
+            if (dados.cellOverrides) applyCellOverrides(dados.cellOverrides);
+            localStorage.setItem('farolPresencaData', JSON.stringify({ cadastroPessoas, rmaData, raData, raecData, rmcData, cellOverrides: dados.cellOverrides || {} }));
+            renderCadastroTable();
+            renderFarol('rma'); renderFarol('ra'); renderFarol('raec');
+            renderHistory('rma'); renderHistory('ra'); renderHistory('raec');
+            updateDashboard();
+        }
+
+        async function criarBackup() {
+            if (!window._firebase) { alert('Firebase não conectado.'); return; }
+            let nome = document.getElementById('nomeBackup').value.trim();
+            if (!nome) {
+                const agora = new Date();
+                nome = 'Backup_' + agora.toLocaleDateString('pt-BR').replace(/\//g, '-') + '_' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':','-');
+            }
+            const msg = document.getElementById('backupMsg');
+            try {
+                msg.innerHTML = '<span style="color:#888">⏳ Salvando backup...</span>';
+                await window._firebase.salvarBackup(nome);
+                msg.innerHTML = '<span style="color:green">✅ Backup "' + nome + '" criado com sucesso!</span>';
+                document.getElementById('nomeBackup').value = '';
+                await atualizarListaBackups();
+                setTimeout(() => { msg.innerHTML = ''; }, 4000);
+            } catch(e) {
+                msg.innerHTML = '<span style="color:red">❌ Erro: ' + e.message + '</span>';
+            }
+        }
+
+        async function atualizarListaBackups() {
+            const el = document.getElementById('listaBackups');
+            if (!el) return;
+            if (!window._firebase) {
+                el.innerHTML = '<span style="color:#e74c3c;">Firebase não conectado.</span>';
+                return;
+            }
+            try {
+                el.innerHTML = '<span style="color:#888; font-style:italic;">Carregando...</span>';
+                const backups = await window._firebase.listarBackups();
+                if (backups.length === 0) {
+                    el.innerHTML = '<span style="color:#aaa; font-style:italic;">Nenhum backup encontrado.</span>';
+                    return;
+                }
+                backups.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+                let html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+                html += '<thead><tr style="background:#f0f0f0;"><th style="padding:8px; text-align:left; border-bottom:1px solid #ddd;">Nome</th><th style="padding:8px; text-align:left; border-bottom:1px solid #ddd;">Data</th><th style="padding:8px; text-align:center; border-bottom:1px solid #ddd;">Ações</th></tr></thead><tbody>';
+                backups.forEach((b, i) => {
+                    const bg = i % 2 === 0 ? '#fafafa' : '#fff';
+                    const data = b.timestamp ? new Date(b.timestamp).toLocaleString('pt-BR') : '—';
+                    html += `<tr style="background:${bg};">
+                        <td style="padding:8px; border-bottom:1px solid #eee;">${b.id}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; color:#666;">${data}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; text-align:center; display:flex; gap:6px; justify-content:center;">
+                            <button onclick="restaurarBackup('${b.id}')" style="background:#3498db; color:white; border:none; border-radius:5px; padding:4px 10px; cursor:pointer; font-size:12px;">⬇️ Restaurar</button>
+                            <button onclick="deletarBackup('${b.id}')" style="background:#e74c3c; color:white; border:none; border-radius:5px; padding:4px 10px; cursor:pointer; font-size:12px;">🗑️ Excluir</button>
+                        </td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+                el.innerHTML = html;
+            } catch(e) {
+                el.innerHTML = '<span style="color:red;">Erro ao listar backups: ' + e.message + '</span>';
+            }
+        }
+
+        async function restaurarBackup(nome) {
+            if (!confirm('⚠️ Restaurar o backup "' + nome + '"? Os dados atuais serão substituídos.')) return;
+            try {
+                const dados = await window._firebase.restaurarBackup(nome);
+                if (!dados) { alert('Backup não encontrado.'); return; }
+                aplicarDados(dados);
+                alert('✅ Backup "' + nome + '" restaurado com sucesso!');
+            } catch(e) {
+                alert('❌ Erro ao restaurar: ' + e.message);
+            }
+        }
+
+        async function deletarBackup(nome) {
+            if (!confirm('Excluir o backup "' + nome + '" permanentemente?')) return;
+            try {
+                await window._firebase.deletarBackup(nome);
+                await atualizarListaBackups();
+            } catch(e) {
+                alert('❌ Erro ao excluir: ' + e.message);
+            }
+        }
+
+        function exportarJSON() {
+            const data = { cadastroPessoas, rmaData, raData, raecData, rmcData, exportadoEm: new Date().toISOString() };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'FarolPresenca_Backup_' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'-') + '.json';
+            a.click();
+        }
+
+        function importarJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const dados = JSON.parse(e.target.result);
+                    if (!confirm('⚠️ Importar este arquivo JSON? Os dados atuais serão substituídos.')) return;
+                    aplicarDados(dados);
+                    alert('✅ Dados importados com sucesso!');
+                } catch(err) {
+                    alert('❌ Arquivo JSON inválido.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Carregar justificativas do Firebase e aplicar células J
+        async function carregarJustificativasDoFirebase() {
+            if (!window._firebase) return;
+            try {
+                const lista = await window._firebase.listarJustificativas();
+                justificativasData = lista || [];
+                // Aplicar J no localStorage para cada justificativa
+                justificativasData.forEach(j => {
+                    if (!j.nome || !j.monthYear || !j.tipo) return;
+                    const justKey = `${j.tipo}_${j.nome}_${j.monthYear}`;
+                    if (localStorage.getItem(justKey) !== 'J') {
+                        localStorage.setItem(justKey, 'J');
+                    }
+                });
+                renderFarol('rma'); renderFarol('ra'); renderFarol('raec');
+                renderHistory('rma'); renderHistory('ra'); renderHistory('raec');
+                renderJustificativas();
+            } catch(e) {
+                console.warn('Erro ao carregar justificativas:', e);
+            }
+        }
+
+        // ── MOTIVO ICONS ──
+        const MOTIVO_ICON = { Viagem: '✈️', Trabalho: '💼', Enfermidade: '🏥', Outros: '📋' };
+        const TIPO_COLOR  = { rma: '#3498db', ra: '#27ae60', raec: '#9b59b6' };
+
+        function renderJustificativas() {
+            const tbody = document.getElementById('justTableBody');
+            const contador = document.getElementById('justContador');
+            if (!tbody) return;
+
+            const filtroNome   = (document.getElementById('justFiltroNome')?.value  || '').trim().toLowerCase();
+            const filtroTipo   = document.getElementById('justFiltroTipo')?.value   || '';
+            const filtroMotivo = document.getElementById('justFiltroMotivo')?.value || '';
+
+            let lista = [...justificativasData];
+            if (filtroNome)   lista = lista.filter(j => j.nome.toLowerCase().includes(filtroNome));
+            if (filtroTipo)   lista = lista.filter(j => j.tipo === filtroTipo);
+            if (filtroMotivo) lista = lista.filter(j => j.motivo === filtroMotivo);
+
+            // Ordenar: mais recente primeiro (por timestamp)
+            lista.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
+            if (contador) {
+                contador.textContent = lista.length === 0
+                    ? 'Nenhuma justificativa encontrada.'
+                    : `${lista.length} justificativa${lista.length > 1 ? 's' : ''} encontrada${lista.length > 1 ? 's' : ''} (total no banco: ${justificativasData.length})`;
+            }
+
+            if (lista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#aaa; padding:30px; font-style:italic;">
+                    Nenhuma justificativa encontrada.
+                </td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = lista.map((j, idx) => {
+                const cor     = TIPO_COLOR[j.tipo] || '#888';
+                const icon    = MOTIVO_ICON[j.motivo] || '📋';
+                const bg      = idx % 2 === 0 ? '#fff' : '#f9f9f9';
+                const dataEnv = j.timestamp ? new Date(j.timestamp).toLocaleString('pt-BR') : (j.data || '—');
+                return `<tr style="background:${bg};">
+                    <td style="padding:10px 12px; border-bottom:1px solid #eee; font-weight:600; color:#2c3e50;">${j.nome || '—'}</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#666; font-size:12px;">${j.cargo || '—'}</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #eee; text-align:center;">
+                        <span style="background:${cor}; color:white; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:700;">${(j.tipo || '').toUpperCase()}</span>
+                    </td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#555;">${j.monthYear || '—'}</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #eee; text-align:center; font-size:13px;">
+                        ${icon} ${j.motivo || '—'}
+                    </td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#888; font-size:12px; max-width:180px; word-break:break-word;">
+                        ${j.observacao || '<span style="color:#ccc;">—</span>'}
+                    </td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #eee; text-align:center; color:#888; font-size:11px; white-space:nowrap;">${dataEnv}</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #eee; text-align:center;">
+                        <button onclick="excluirJustificativa('${j.id}', '${(j.nome||'').replace(/'/g,"\'") }', '${j.monthYear || ''}', '${j.tipo || ''}')"
+                            style="background:#fff3f3; color:#e74c3c; border:1px solid #e74c3c; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer; font-weight:600; transition:all 0.2s;"
+                            onmouseover="this.style.background='#e74c3c';this.style.color='white';"
+                            onmouseout="this.style.background='#fff3f3';this.style.color='#e74c3c';">
+                            🗑️ Excluir
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function excluirJustificativa(id, nome, monthYear, tipo) {
+            if (!id) { alert('ID inválido.'); return; }
+            if (!confirm(`Excluir a justificativa de "${nome}" em ${monthYear} (${tipo.toUpperCase()})?
+
+Se a célula ainda estiver marcada como J manualmente, ela permanecerá até ser alterada.`)) return;
+            try {
+                await window._firebase.deletarJustificativa(id);
+                // Remover do array local
+                justificativasData = justificativasData.filter(j => j.id !== id);
+                renderJustificativas();
+                renderHistory('rma'); renderHistory('ra'); renderHistory('raec');
+                // Nota: NÃO remove o localStorage — alteração manual prevalece
+            } catch(e) {
+                alert('Erro ao excluir: ' + e.message);
+            }
+        }
+
+        // Inicializar Firebase UI quando pronto
+        document.addEventListener('firebaseReady', async () => {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            const badge = document.getElementById('headerSyncBadge');
+            if (dot) dot.style.background = '#27ae60';
+            if (txt) txt.textContent = '✅ Conectado ao Firebase — dados salvos na nuvem em tempo real';
+            if (badge) {
+                badge.innerHTML = '⬤ &nbsp;Nuvem conectada';
+                badge.style.borderColor = 'rgba(46,204,113,0.5)';
+                badge.style.color = 'rgba(46,204,113,0.95)';
+            }
+            // Carregar dados do Firebase automaticamente ao conectar
+            try {
+                const dados = await window._firebase.carregarDadosPrincipais();
+                if (dados) {
+                    aplicarDados(dados);
+                }
+            } catch(e) {
+                console.warn('Erro ao carregar dados do Firebase no ready:', e);
+            }
+            await atualizarListaBackups();
+            // Carregar justificativas (programa externo)
+            await carregarJustificativasDoFirebase();
+        });
+
+        // Se Firebase não carregar em 5s, mostrar erro
+        setTimeout(() => {
+            if (!window._firebaseReady) {
+                const dot = document.getElementById('statusDot');
+                const txt = document.getElementById('statusText');
+                const badge = document.getElementById('headerSyncBadge');
+                if (dot) dot.style.background = '#e74c3c';
+                if (txt) txt.textContent = '❌ Firebase não conectado — verifique sua conexão com a internet';
+                if (badge) {
+                    badge.innerHTML = '⬤ &nbsp;Offline';
+                    badge.style.borderColor = 'rgba(231,76,60,0.5)';
+                    badge.style.color = 'rgba(231,76,60,0.9)';
+                }
+                const el = document.getElementById('listaBackups');
+                if (el) el.innerHTML = '<span style="color:#e74c3c;">Firebase não disponível.</span>';
+            }
+        }, 5000);
+
+        // Popup de edição de presença para células ausentes
+        // Aplica o estado visual na célula
+        function applyCellState(td, justKey, state) {
+            // state: 'P' = presente manual, 'J' = justificado, 'A' = ausente, 'original' = presente do Excel
+            td.className = 'presence-cell';
+            td.onclick = null;
+
+            if (state === 'original') {
+                // Não permite alterar células que vieram do Excel como presentes
+                // (serão tratadas separadamente com overrides via localStorage)
+            }
+
+            if (state === 'P') {
+                localStorage.setItem(justKey, 'P');
+                td.classList.add('present-manual');
+                td.textContent = '✓';
+            } else if (state === 'J') {
+                localStorage.setItem(justKey, 'J');
+                td.classList.add('justified');
+                td.textContent = 'J';
+            } else if (state === 'A') {
+                localStorage.setItem(justKey, 'A');
+                td.classList.add('absent');
+                td.textContent = '';
+            }
+
+            td.style.cursor = 'pointer';
+            td.onclick = function(e) { showPresencePopup(e, td, justKey); };
+        }
+
+        // Popup universal com 3 opções para qualquer célula
+        function showPresencePopup(e, td, justKey) {
+            e.stopPropagation();
+            const existing = document.getElementById('presencePopup');
+            if (existing) existing.remove();
+
+            const popup = document.createElement('div');
+            popup.className = 'presence-popup';
+            popup.id = 'presencePopup';
+
+            const rect = td.getBoundingClientRect();
+            popup.style.position = 'fixed';
+            popup.style.top = (rect.bottom + 4) + 'px';
+            popup.style.left = rect.left + 'px';
+            popup.style.zIndex = '9999';
+
+            popup.innerHTML = `
+                <div class="popup-title">Marcar como:</div>
+                <div class="popup-btns">
+                    <button class="btn-presente">✓ Presente</button>
+                    <button class="btn-ausente">✗ Ausente</button>
+                    <button class="btn-justificado">J Justificado</button>
+                </div>`;
+
+            popup.querySelector('.btn-presente').onclick = function(ev) {
+                ev.stopPropagation();
+                applyCellState(td, justKey, 'P');
+                popup.remove();
+                saveData();
+            };
+
+            popup.querySelector('.btn-ausente').onclick = function(ev) {
+                ev.stopPropagation();
+                applyCellState(td, justKey, 'A');
+                popup.remove();
+                saveData();
+            };
+
+            popup.querySelector('.btn-justificado').onclick = function(ev) {
+                ev.stopPropagation();
+                applyCellState(td, justKey, 'J');
+                popup.remove();
+                saveData();
+            };
+
+            document.body.appendChild(popup);
+
+            setTimeout(() => {
+                document.addEventListener('click', function handler() {
+                    popup.remove();
+                    document.removeEventListener('click', handler);
+                });
+            }, 0);
+        }
+
+        // Mantido para compatibilidade
+        function setAbsentClick(td, justKey) {
+            td.style.cursor = 'pointer';
+            td.onclick = function(e) { showPresencePopup(e, td, justKey); };
+        }
+
+        // ── TOAST ──
+        function showToast(msg, type = 'success', duration = 3000) {
+            const container = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.textContent = msg;
+            container.appendChild(t);
+            requestAnimationFrame(() => { requestAnimationFrame(() => { t.classList.add('show'); }); });
+            setTimeout(() => {
+                t.classList.remove('show');
+                setTimeout(() => t.remove(), 350);
+            }, duration);
+        }
+
+        // Substituir o saveData para emitir toast no sync Firebase
+        const _origSaveData = saveData;
+        function saveData() {
+            const cellOverrides = getCellOverrides();
+            const data = { cadastroPessoas, rmaData, raData, raecData, rmcData, cellOverrides };
+            localStorage.setItem('farolPresencaData', JSON.stringify(data));
+            if (window._firebase) {
+                window._firebase.syncAutoSave(data).then(() => {
+                    window._lastSync = new Date();
+                    atualizarStatusSync();
+                    showToast('☁️ Dados salvos na nuvem', 'success', 2000);
+                }).catch(e => {
+                    console.warn('Sync Firebase falhou:', e);
+                    showToast('⚠️ Falha ao sincronizar', 'warning', 3000);
+                });
+            }
+        }
+
+        // ── MODAL PERFIL ──
+        function abrirPerfil(index) {
+            const pessoa = cadastroPessoas[index];
+            if (!pessoa) return;
+
+            const MESES_ORDER = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+            function calcStats(tipo) {
+                const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : raecData;
+                const meses = getMesesFiltrados(tipo);
+                let presentes = 0, ausentes = 0, justificados = 0;
+                const timeline = [];
+                meses.forEach(mes => {
+                    const justKey = `${tipo}_${pessoa.nome}_${mes}`;
+                    const cellState = localStorage.getItem(justKey);
+                    const temJustFB = justificativasData.some(j =>
+                        j.tipo === tipo && j.nome.toLowerCase().trim() === pessoa.nome.toLowerCase().trim() && j.monthYear === mes);
+                    const pExcel = dataObj.history.find(h =>
+                        h.monthYear === mes && h.nome.toLowerCase() === pessoa.nome.toLowerCase() && h.presente === true);
+
+                    let estado;
+                    if (temJustFB || cellState === 'J') { estado = 'J'; justificados++; }
+                    else if (pExcel || cellState === 'P') { estado = 'P'; presentes++; }
+                    else if (cellState === 'A') { estado = 'A'; ausentes++; }
+                    else if (dataObj.months.includes(mes)) { estado = 'A'; ausentes++; }
+                    else { estado = null; }
+                    if (estado) timeline.push({ mes, estado });
+                });
+                const total = presentes + ausentes + justificados;
+                const pct = total > 0 ? Math.round((presentes / total) * 100) : null;
+                return { presentes, ausentes, justificados, total, pct, timeline };
+            }
+
+            function detectarConsecutivos(tipo) {
+                const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : raecData;
+                const meses = getMesesFiltrados(tipo);
+                let consec = 0, maxConsec = 0;
+                meses.forEach(mes => {
+                    const justKey = `${tipo}_${pessoa.nome}_${mes}`;
+                    const cellState = localStorage.getItem(justKey);
+                    const temJustFB = justificativasData.some(j =>
+                        j.tipo === tipo && j.nome.toLowerCase().trim() === pessoa.nome.toLowerCase().trim() && j.monthYear === mes);
+                    const pExcel = dataObj.history.find(h =>
+                        h.monthYear === mes && h.nome.toLowerCase() === pessoa.nome.toLowerCase() && h.presente === true);
+                    const presente = (temJustFB || cellState === 'J') ? false : (pExcel || cellState === 'P');
+                    if (!presente && dataObj.months.includes(mes)) { consec++; maxConsec = Math.max(maxConsec, consec); }
+                    else { consec = 0; }
+                });
+                return { atual: consec, max: maxConsec };
+            }
+
+            const tipos = ['rma','ra','raec'].filter(t => pessoa.reunioes && pessoa.reunioes[t]);
+            let html = `<h2 style="margin:0 0 4px; color:#2c3e50; font-size:20px;">👤 ${pessoa.nome}</h2>
+                <p style="color:#888; font-size:13px; margin:0 0 18px;">${pessoa.cargo} &nbsp;·&nbsp; ${pessoa.localidade} &nbsp;·&nbsp; ${pessoa.cidade}</p>`;
+
+            if (tipos.length === 0) {
+                html += '<p style="color:#aaa;">Não participa de nenhuma reunião cadastrada.</p>';
+            } else {
+                tipos.forEach(tipo => {
+                    const s = calcStats(tipo);
+                    const c = detectarConsecutivos(tipo);
+                    const cor = s.pct === null ? '#aaa' : s.pct >= 75 ? '#27ae60' : s.pct >= 50 ? '#f39c12' : '#e74c3c';
+                    const alertaHTML = c.atual >= 4 ? `<span style="background:#e74c3c;color:white;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:800;margin-left:8px;">⚠️ ${c.atual} faltas seguidas</span>` : '';
+
+                    html += `<div style="margin-bottom:20px; padding:16px; background:#f8faff; border-radius:10px; border:1px solid #dde8f7;">
+                        <div style="font-weight:700; font-size:15px; color:#2c3e50; margin-bottom:10px;">
+                            ${tipo.toUpperCase()} ${alertaHTML}
+                        </div>`;
+
+                    if (s.total === 0) {
+                        html += '<p style="color:#aaa; font-size:13px;">Sem dados importados.</p>';
+                    } else {
+                        html += `<div class="perfil-stat-grid">
+                            <div class="perfil-stat-card">
+                                <div class="psc-label">Presenças</div>
+                                <div class="psc-val" style="color:#27ae60;">${s.presentes}</div>
+                            </div>
+                            <div class="perfil-stat-card">
+                                <div class="psc-label">Ausências</div>
+                                <div class="psc-val" style="color:#e74c3c;">${s.ausentes}</div>
+                            </div>
+                            <div class="perfil-stat-card">
+                                <div class="psc-label">Justificados</div>
+                                <div class="psc-val" style="color:#e67e22;">${s.justificados}</div>
+                            </div>
+                            <div class="perfil-stat-card">
+                                <div class="psc-label">% Presença</div>
+                                <div class="psc-val" style="color:${cor};">${s.pct !== null ? s.pct + '%' : '—'}</div>
+                            </div>
+                        </div>`;
+
+                        // Timeline mês a mês
+                        html += `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">`;
+                        s.timeline.forEach(({mes, estado}) => {
+                            const bg = estado === 'P' ? '#27ae60' : estado === 'J' ? '#e67e22' : '#e74c3c';
+                            const icon = estado === 'P' ? '✓' : estado === 'J' ? 'J' : '✗';
+                            html += `<div title="${mes}: ${estado === 'P' ? 'Presente' : estado === 'J' ? 'Justificado' : 'Ausente'}"
+                                style="background:${bg}; color:white; border-radius:8px; padding:5px 9px; font-size:11px; font-weight:700; cursor:default;">
+                                ${icon} ${mes.split(' de ')[0].substring(0,3)}
+                            </div>`;
+                        });
+                        html += `</div>`;
+                    }
+                    html += `</div>`;
+                });
+            }
+
+            document.getElementById('modalPerfilContent').innerHTML = html;
+            document.getElementById('modalPerfil').classList.add('open');
+        }
+
+        function fecharPerfil() {
+            document.getElementById('modalPerfil').classList.remove('open');
+        }
+        document.getElementById('modalPerfil').addEventListener('click', function(e) {
+            if (e.target === this) fecharPerfil();
+        });
+
+        // ── AUSÊNCIAS CONSECUTIVAS: detectar e marcar na linha do farol ──
+        function getConsecutivasAtuais(tipo, pessoa) {
+            const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : raecData;
+            const meses = getMesesFiltrados(tipo);
+            let consec = 0;
+            for (let i = meses.length - 1; i >= 0; i--) {
+                const mes = meses[i];
+                if (!dataObj.months.includes(mes)) break;
+                const justKey = `${tipo}_${pessoa.nome}_${mes}`;
+                const cellState = localStorage.getItem(justKey);
+                const temJustFB = justificativasData.some(j =>
+                    j.tipo === tipo && j.nome.toLowerCase().trim() === pessoa.nome.toLowerCase().trim() && j.monthYear === mes);
+                const pExcel = dataObj.history.find(h =>
+                    h.monthYear === mes && h.nome.toLowerCase() === pessoa.nome.toLowerCase() && h.presente === true);
+                const presente = (temJustFB || cellState === 'J') ? false : (pExcel || cellState === 'P');
+                if (!presente) consec++;
+                else break;
+            }
+            return consec;
+        }
+
+        // ── EXPORTAR AUSENTES DO MÊS ──
+        function exportarAusentesMes(tipo) {
+            const dataObj = tipo === 'rma' ? rmaData : tipo === 'ra' ? raData : raecData;
+            const meses = getMesesFiltrados(tipo);
+            if (meses.length === 0) { showToast('Nenhum mês com dados', 'warning'); return; }
+
+            // Usar o último mês disponível por padrão; se houver filtro de mês ativo, usar ele
+            const filtroMesEl = document.getElementById(`${tipo}FiltroMes`);
+            const mesSelecionado = (filtroMesEl && filtroMesEl.value) ? filtroMesEl.value : meses[meses.length - 1];
+
+            const pessoasDoTipo = cadastroPessoas.filter(p => !p.reunioes || p.reunioes[tipo] !== false);
+            const ausentes = [];
+
+            pessoasDoTipo.forEach(pessoa => {
+                if (!dataObj.months.includes(mesSelecionado)) return;
+                const justKey = `${tipo}_${pessoa.nome}_${mesSelecionado}`;
+                const cellState = localStorage.getItem(justKey);
+                const temJustFB = justificativasData.some(j =>
+                    j.tipo === tipo && j.nome.toLowerCase().trim() === pessoa.nome.toLowerCase().trim() && j.monthYear === mesSelecionado);
+                const pExcel = dataObj.history.find(h =>
+                    h.monthYear === mesSelecionado && h.nome.toLowerCase() === pessoa.nome.toLowerCase() && h.presente === true);
+                const presente = (temJustFB || cellState === 'J') ? false : (pExcel || cellState === 'P');
+                if (!presente) {
+                    const status = (temJustFB || cellState === 'J') ? 'Justificado' : 'Ausente';
+                    ausentes.push([pessoa.nome, pessoa.cargo, pessoa.localidade, status]);
+                }
+            });
+
+            if (ausentes.length === 0) { showToast('Nenhum ausente em ' + mesSelecionado, 'info'); return; }
+
+            const exportData = [['Nome', 'Ministério/Cargo', 'Localidade', 'Status'], ...ausentes];
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Ausentes');
+            XLSX.writeFile(wb, `Ausentes_${tipo.toUpperCase()}_${mesSelecionado.replace(/ /g,'_')}.xlsx`);
+            showToast(`📋 ${ausentes.length} ausente(s) exportado(s)`, 'info');
+        }
+
+        // ── POPULAR SELECT DE MESES NOS FAROIS ──
+        function popularFiltroMes(tipo) {
+            const el = document.getElementById(`${tipo}FiltroMes`);
+            if (!el) return;
+            const meses = getMesesFiltrados(tipo);
+            const atual = el.value;
+            el.innerHTML = '<option value="">Todos os Meses</option>';
+            meses.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m; opt.textContent = m;
+                if (m === atual) opt.selected = true;
+                el.appendChild(opt);
+            });
+        }
+
+        // ── RENDERIZAR CADASTRO COM FILTROS E PERFIL ──
+        function renderCadastroTable() {
+            const tbody = document.getElementById('cadastroTableBody');
+            tbody.innerHTML = '';
+
+            const filtroNome    = (document.getElementById('cadastroFiltroNome')    || {}).value || '';
+            const filtroCargo   = (document.getElementById('cadastroFiltroCargo')   || {}).value || '';
+            const filtroReuniao = (document.getElementById('cadastroFiltroReuniao') || {}).value || '';
+
+            const pessoasComIndice = cadastroPessoas.map((pessoa, index) => ({ pessoa, index }));
+            const pessoasOrdenadas = sortByHierarchy(pessoasComIndice, item => item.pessoa.cargo);
+
+            const filtradas = pessoasOrdenadas.filter(({ pessoa }) => {
+                if (filtroNome   && !pessoa.nome.toLowerCase().includes(filtroNome.toLowerCase())) return false;
+                if (filtroCargo  && normalizeCargo(pessoa.cargo) !== filtroCargo) return false;
+                if (filtroReuniao) {
+                    if (!pessoa.reunioes) return false;
+                    if (!pessoa.reunioes[filtroReuniao]) return false;
+                }
+                return true;
+            });
+
+            const infoEl = document.getElementById('cadastroFiltroInfo');
+            if (infoEl) {
+                const total = cadastroPessoas.length;
+                const exibindo = filtradas.length;
+                infoEl.textContent = (filtroNome || filtroCargo || filtroReuniao)
+                    ? `Exibindo ${exibindo} de ${total} pessoa(s)`
+                    : `${total} pessoa(s) cadastrada(s)`;
+            }
+
+            filtradas.forEach(({ pessoa, index }) => {
+                if (!pessoa.reunioes) pessoa.reunioes = { rma: true, ra: false, raec: false, rmc: false };
+
+                // Verificar alertas de ausências consecutivas
+                const tipos = ['rma','ra','raec'].filter(t => pessoa.reunioes && pessoa.reunioes[t]);
+                const alertas = tipos.map(t => {
+                    const c = getConsecutivasAtuais(t, pessoa);
+                    return c >= 4 ? `<span class="alerta-consecutivo">⚠️ ${c}x ${t.toUpperCase()}</span>` : '';
+                }).join('');
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${pessoa.nome}${alertas}</td>
+                    <td>${pessoa.cargo}</td>
+                    <td>${pessoa.localidade}</td>
+                    <td>${pessoa.cidade}</td>
+                    <td style="text-align:center;">
+                        <input type="checkbox" ${pessoa.reunioes.rma ? 'checked' : ''}
+                            onchange="toggleReuniao(${index},'rma',this.checked)"
+                            style="width:16px;height:16px;cursor:pointer;" title="Participa da RMA">
+                    </td>
+                    <td style="text-align:center;">
+                        <input type="checkbox" ${pessoa.reunioes.ra ? 'checked' : ''}
+                            onchange="toggleReuniao(${index},'ra',this.checked)"
+                            style="width:16px;height:16px;cursor:pointer;" title="Participa da RA">
+                    </td>
+                    <td style="text-align:center;">
+                        <input type="checkbox" ${pessoa.reunioes.raec ? 'checked' : ''}
+                            onchange="toggleReuniao(${index},'raec',this.checked)"
+                            style="width:16px;height:16px;cursor:pointer;" title="Participa da RAEC">
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn" style="background:#8e44ad;color:white;" onclick="abrirPerfil(${index})">👤 Perfil</button>
+                            <button class="btn btn-warning" onclick="editPerson(${index})">✏️ Editar</button>
+                            <button class="btn btn-danger" onclick="deletePerson(${index})">🗑️ Excluir</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Carregar dados ao iniciar
+        loadData();
+
+    </script>
+</body>
+</html>
