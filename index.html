@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -646,6 +646,7 @@
             vertical-align: middle; letter-spacing: 0.3px; animation: pulse-alerta 1.5s infinite;
         }
         @keyframes pulse-alerta { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -697,6 +698,10 @@
             <button class="tab-button" onclick="openTab('justificativas')">
                 <span class="tab-sigla">📝</span>
                 <span class="tab-desc">Justificativas</span>
+            </button>
+            <button class="tab-button" onclick="openTab('listaComplementar'); initListaComplementar()">
+                <span class="tab-sigla">📋</span>
+                <span class="tab-desc">Lista Compl.</span>
             </button>
 
         </div>
@@ -1369,6 +1374,8 @@
                         style="padding:7px 14px; background:#e0e0e0; border:none; border-radius:6px; font-size:12px; cursor:pointer; color:#555;">✕ Limpar</button>
                     <button onclick="carregarJustificativasDoFirebase()" 
                         style="padding:7px 14px; background:#3498db; color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer; margin-left:auto;">🔄 Atualizar</button>
+                    <button onclick="exportarJustificativasPDF()"
+                        style="padding:7px 14px; background:#c0392b; color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600;">📄 Exportar PDF</button>
                 </div>
 
                 <!-- Contador -->
@@ -1398,6 +1405,90 @@
                 </div>
             </div>
         </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             ABA LISTA DE PRESENÇA COMPLEMENTAR
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="listaComplementar" class="tab-content">
+
+            <!-- ── PAINEL ADMIN: REUNIÃO ATIVA ── -->
+            <div class="section">
+                <h2>⚙️ Reunião Ativa</h2>
+                <p style="color:#666; font-size:13px; margin-bottom:18px;">
+                    Configure aqui qual reunião está ativa. O link da lista de presença complementar mostrará automaticamente estas informações para os participantes.
+                </p>
+
+                <!-- Status atual -->
+                <div id="lc_statusBox" style="border-radius:10px; padding:16px 18px; margin-bottom:22px; display:flex; align-items:center; gap:14px; background:#fdf2f8; border:1.5px solid #f1a7d0;">
+                    <div id="lc_statusDot" style="width:14px; height:14px; border-radius:50%; background:#bdc3c7; flex-shrink:0;"></div>
+                    <div>
+                        <div style="font-size:11px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px;">Status da reunião</div>
+                        <div id="lc_statusValue" style="font-size:15px; font-weight:700; color:#2c3e50; margin-top:3px;">Carregando...</div>
+                        <div id="lc_statusSub" style="font-size:12px; color:#7f8c8d; margin-top:2px;"></div>
+                    </div>
+                </div>
+
+                <!-- Formulário -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                    <div class="form-group">
+                        <label style="display:block; font-size:12px; font-weight:700; color:#34495e; margin-bottom:6px; text-transform:uppercase; letter-spacing:.4px;">Tipo de Reunião</label>
+                        <select id="lc_tipoSelect" style="width:100%; padding:10px 12px; border:2px solid #e0e0e0; border-radius:7px; font-size:14px; color:#2c3e50; outline:none; background:#fafafa;">
+                            <option value="RA">RA – Reunião Administrativa</option>
+                            <option value="RMA">RMA – Ministério e Administração</option>
+                            <option value="RAEC">RAEC – Adm. Eng. e Compras</option>
+                            <option value="RMC">RMC – Musicais de Caieiras</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:block; font-size:12px; font-weight:700; color:#34495e; margin-bottom:6px; text-transform:uppercase; letter-spacing:.4px;">Data da Reunião</label>
+                        <input type="date" id="lc_dataInput" style="width:100%; padding:10px 12px; border:2px solid #e0e0e0; border-radius:7px; font-size:14px; color:#2c3e50; outline:none; background:#fafafa;" />
+                    </div>
+                </div>
+                <div style="margin-bottom:18px;">
+                    <label style="display:block; font-size:12px; font-weight:700; color:#34495e; margin-bottom:6px; text-transform:uppercase; letter-spacing:.4px;">Descrição (opcional)</label>
+                    <input type="text" id="lc_descInput" placeholder="Ex: RA de Maio — Pauta geral" maxlength="80"
+                        style="width:100%; padding:10px 12px; border:2px solid #e0e0e0; border-radius:7px; font-size:14px; color:#2c3e50; outline:none; background:#fafafa;" />
+                </div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn btn-success" onclick="lc_ativarReuniao()">🟢 Ativar Reunião</button>
+                    <button class="btn btn-danger"  onclick="lc_desativarReuniao()">🔴 Desativar</button>
+                    <button class="btn btn-primary" onclick="lc_carregarRegistros()">🔄 Atualizar registros</button>
+                </div>
+            </div>
+
+            <!-- ── REGISTROS DA LISTA COMPLEMENTAR ── -->
+            <div class="section">
+                <h2>📋 Registros Recentes — Lista Complementar</h2>
+                <p style="color:#666; font-size:13px; margin-bottom:18px;">
+                    Presenças enviadas pelos participantes pelo link da Lista de Presença Complementar.
+                </p>
+
+                <!-- Filtros -->
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; padding:12px 14px; background:#f4f8ff; border-radius:8px; border:1px solid #d0e4f7;">
+                    <span style="font-size:13px; font-weight:bold; color:#2c3e50;">🔍 Filtrar:</span>
+                    <input type="text" id="lc_filtroNome" placeholder="Buscar por nome..."
+                        oninput="lc_filtrarRegistros()"
+                        style="padding:7px 12px; border:1px solid #ccc; border-radius:6px; font-size:13px; min-width:180px;">
+                    <select id="lc_filtroTipo" onchange="lc_filtrarRegistros()"
+                        style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <option value="">Todas as Reuniões</option>
+                        <option value="RA">RA</option>
+                        <option value="RMA">RMA</option>
+                        <option value="RAEC">RAEC</option>
+                        <option value="RMC">RMC</option>
+                    </select>
+                    <button onclick="document.getElementById('lc_filtroNome').value=''; document.getElementById('lc_filtroTipo').value=''; lc_filtrarRegistros();"
+                        style="padding:7px 14px; background:#e0e0e0; border:none; border-radius:6px; font-size:12px; cursor:pointer; color:#555;">✕ Limpar</button>
+                    <span id="lc_contador" style="font-size:12px; color:#888; margin-left:auto;"></span>
+                </div>
+
+                <div id="lc_registrosWrap" style="overflow-x:auto;">
+                    <p style="color:#aaa; font-style:italic; text-align:center; padding:30px;">Clique em "Atualizar registros" para carregar.</p>
+                </div>
+            </div>
+
+        </div><!-- /listaComplementar -->
 
     </div>
 
@@ -2222,10 +2313,8 @@ Deixe em branco para usar o mês atual (${mesAtual}):`,
             pessoasOrdenadas.forEach(pessoa => {
                 const tr = document.createElement('tr');
                 
-                const consec = getConsecutivasAtuais(tipo, pessoa);
-                const alertaFarol = consec >= 4 ? `<span class="alerta-consecutivo">⚠️ ${consec}x</span>` : '';
                 tr.innerHTML = `
-                    <td>${pessoa.nome}${alertaFarol}</td>
+                    <td>${pessoa.nome}</td>
                     <td>${pessoa.cargo}</td>
                     <td>${pessoa.localidade}</td>
                 `;
@@ -3514,16 +3603,9 @@ Se a célula ainda estiver marcada como J manualmente, ela permanecerá até ser
             filtradas.forEach(({ pessoa, index }) => {
                 if (!pessoa.reunioes) pessoa.reunioes = { rma: true, ra: false, raec: false, rmc: false };
 
-                // Verificar alertas de ausências consecutivas
-                const tipos = ['rma','ra','raec'].filter(t => pessoa.reunioes && pessoa.reunioes[t]);
-                const alertas = tipos.map(t => {
-                    const c = getConsecutivasAtuais(t, pessoa);
-                    return c >= 4 ? `<span class="alerta-consecutivo">⚠️ ${c}x ${t.toUpperCase()}</span>` : '';
-                }).join('');
-
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${pessoa.nome}${alertas}</td>
+                    <td>${pessoa.nome}</td>
                     <td>${pessoa.cargo}</td>
                     <td>${pessoa.localidade}</td>
                     <td>${pessoa.cidade}</td>
@@ -3553,6 +3635,463 @@ Se a célula ainda estiver marcada como J manualmente, ela permanecerá até ser
                 tbody.appendChild(tr);
             });
         }
+
+        // ── EXPORTAR JUSTIFICATIVAS EM PDF (agrupado por Mês → Reunião → Cargo) ──
+        function exportarJustificativasPDF() {
+            const filtroNome   = (document.getElementById('justFiltroNome')?.value  || '').trim().toLowerCase();
+            const filtroTipo   = document.getElementById('justFiltroTipo')?.value   || '';
+            const filtroMotivo = document.getElementById('justFiltroMotivo')?.value || '';
+
+            let lista = [...justificativasData];
+            if (filtroNome)   lista = lista.filter(j => j.nome.toLowerCase().includes(filtroNome));
+            if (filtroTipo)   lista = lista.filter(j => j.tipo === filtroTipo);
+            if (filtroMotivo) lista = lista.filter(j => j.motivo === filtroMotivo);
+
+            if (lista.length === 0) { showToast('Nenhuma justificativa para exportar', 'warning'); return; }
+
+            // Ordenação para agrupamento: Mês → Reunião → Cargo
+            const mesOrdem = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+            const tipoOrdem = { rma: 0, ra: 1, raec: 2 };
+
+            // Helper: converte string para latin1 safe para jsPDF
+            function safe(str) {
+                if (!str) return '';
+                return str
+                    .replace(/\u00e3/g,'a').replace(/\u00c3/g,'A')
+                    .replace(/\u00e7/g,'c').replace(/\u00c7/g,'C')
+                    .replace(/\u00e9/g,'e').replace(/\u00c9/g,'E')
+                    .replace(/\u00ea/g,'e').replace(/\u00ca/g,'E')
+                    .replace(/\u00e1/g,'a').replace(/\u00c1/g,'A')
+                    .replace(/\u00e2/g,'a').replace(/\u00c2/g,'A')
+                    .replace(/\u00f3/g,'o').replace(/\u00d3/g,'O')
+                    .replace(/\u00f4/g,'o').replace(/\u00d4/g,'O')
+                    .replace(/\u00fa/g,'u').replace(/\u00da/g,'U')
+                    .replace(/\u00ed/g,'i').replace(/\u00cd/g,'I')
+                    .replace(/\u00f5/g,'o').replace(/\u00d5/g,'O')
+                    .replace(/\u00e0/g,'a').replace(/\u00c0/g,'A')
+                    .replace(/\u00fc/g,'u').replace(/\u00dc/g,'U')
+                    .replace(/[^\x00-\xFF]/g, '?');
+            }
+            lista.sort((a, b) => {
+                const [maN, maA] = (a.monthYear || '').split(' de ');
+                const [mbN, mbA] = (b.monthYear || '').split(' de ');
+                const yearDiff = parseInt(mbA || 0) - parseInt(maA || 0);
+                if (yearDiff !== 0) return yearDiff * -1;
+                const mDiff = mesOrdem.indexOf(maN) - mesOrdem.indexOf(mbN);
+                if (mDiff !== 0) return mDiff;
+                const tDiff = (tipoOrdem[a.tipo] ?? 9) - (tipoOrdem[b.tipo] ?? 9);
+                if (tDiff !== 0) return tDiff;
+                return (a.cargo || '').localeCompare(b.cargo || '', 'pt-BR');
+            });
+
+            // Agrupar: Mês → Reunião → Cargo → registros
+            const grupos = {};
+            lista.forEach(j => {
+                const mes = j.monthYear || 'Sem mês';
+                const tipo = (j.tipo || 'outro').toUpperCase();
+                const cargo = j.cargo || 'Sem cargo';
+                if (!grupos[mes]) grupos[mes] = {};
+                if (!grupos[mes][tipo]) grupos[mes][tipo] = {};
+                if (!grupos[mes][tipo][cargo]) grupos[mes][tipo][cargo] = [];
+                grupos[mes][tipo][cargo].push(j);
+            });
+
+            // Gerar PDF com jsPDF
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const pageW = 210, pageH = 297, margin = 14;
+            let y = margin;
+            const lineH = 5.5;
+            const maxW = pageW - margin * 2;
+
+            function checkPage(needed = 10) {
+                if (y + needed > pageH - margin) { pdf.addPage(); y = margin; }
+            }
+
+            // Cabeçalho do documento
+            pdf.setFillColor(26, 42, 58);
+            pdf.rect(0, 0, pageW, 20, 'F');
+            pdf.setFontSize(13);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(255, 255, 255);
+            pdf.text('Farol de Presenca - CCB', margin, 8);
+            pdf.setFontSize(9);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('Relatorio de Justificativas de Ausencia', margin, 13.5);
+            pdf.setFontSize(8);
+            pdf.setTextColor(200, 200, 200);
+            pdf.text('Gerado em: ' + new Date().toLocaleString('pt-BR'), pageW - margin, 13.5, { align: 'right' });
+            y = 26;
+
+            const TIPO_RGB = {
+                RMA: [52, 152, 219],
+                RA: [39, 174, 96],
+                RAEC: [155, 89, 182]
+            };
+            const MOTIVO_ICONS_TEXT = { Viagem: 'Viagem', Trabalho: 'Trabalho', Enfermidade: 'Enfermidade', Outros: 'Outros' };
+
+            Object.keys(grupos).forEach(mes => {
+                checkPage(18);
+                // Título do Mês
+                pdf.setFillColor(44, 62, 80);
+                pdf.rect(margin, y, maxW, 8, 'F');
+                pdf.setFontSize(10);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(255, 255, 255);
+                pdf.text(safe('📅  ' + mes), margin + 3, y + 5.5);
+                y += 10;
+
+                Object.keys(grupos[mes]).forEach(tipo => {
+                    checkPage(14);
+                    // Título da Reunião
+                    const rgb = TIPO_RGB[tipo] || [100, 100, 100];
+                    pdf.setFillColor(...rgb);
+                    pdf.rect(margin + 3, y, maxW - 3, 6.5, 'F');
+                    pdf.setFontSize(9);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.text('Reuniao: ' + tipo, margin + 6, y + 4.5);
+                    y += 8;
+
+                    Object.keys(grupos[mes][tipo]).forEach(cargo => {
+                        checkPage(14);
+                        // Título do Cargo
+                        pdf.setFillColor(236, 240, 241);
+                        pdf.rect(margin + 6, y, maxW - 6, 5.5, 'F');
+                        pdf.setFontSize(8.5);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setTextColor(44, 62, 80);
+                        pdf.text(safe(cargo), margin + 9, y + 4);
+                        y += 7;
+
+                        grupos[mes][tipo][cargo].forEach(j => {
+                            checkPage(lineH * 3 + 4);
+                            // Linha do nome + motivo
+                            pdf.setFont('helvetica', 'bold');
+                            pdf.setFontSize(8.5);
+                            pdf.setTextColor(30, 30, 30);
+                            const nomeText = safe(j.nome || '—');
+                            const motivoText = safe(j.motivo || '—');
+                            pdf.text(nomeText, margin + 9, y + 3.5);
+                            pdf.setFont('helvetica', 'normal');
+                            pdf.setFontSize(7.5);
+                            pdf.setTextColor(100, 100, 100);
+                            pdf.text(motivoText, pageW - margin - 2, y + 3.5, { align: 'right' });
+                            y += lineH;
+
+                            // Observação
+                            if (j.observacao) {
+                                pdf.setFont('helvetica', 'italic');
+                                pdf.setFontSize(7.5);
+                                pdf.setTextColor(130, 130, 130);
+                                const obs = pdf.splitTextToSize(safe(j.observacao), maxW - 18);
+                                obs.forEach(line => {
+                                    checkPage(lineH);
+                                    pdf.text(line, margin + 9, y + 3);
+                                    y += lineH - 1;
+                                });
+                            }
+
+                            // Data de envio
+                            pdf.setFont('helvetica', 'normal');
+                            pdf.setFontSize(7);
+                            pdf.setTextColor(180, 180, 180);
+                            const dataEnv = j.timestamp ? new Date(j.timestamp).toLocaleString('pt-BR') : (j.data || '');
+                            if (dataEnv) { pdf.text('Enviado em: ' + dataEnv, margin + 9, y + 2); y += lineH - 1; }
+
+                            // Separador
+                            pdf.setDrawColor(230, 230, 230);
+                            pdf.line(margin + 9, y, pageW - margin, y);
+                            y += 3;
+                        });
+                        y += 2;
+                    });
+                    y += 3;
+                });
+                y += 4;
+            });
+
+            // Rodapé na última página
+            pdf.setFontSize(7.5);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(180, 180, 180);
+            pdf.text(`Total: ${lista.length} justificativa(s)`, margin, pageH - 8);
+            pdf.text('Farol de Presenca - CCB · Caieiras', pageW / 2, pageH - 8, { align: 'center' });
+
+            pdf.save(`Justificativas_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.pdf`);
+            showToast(`📄 PDF exportado com ${lista.length} justificativa(s)`, 'success');
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        //  LISTA DE PRESENÇA COMPLEMENTAR — lógica da aba
+        // ═══════════════════════════════════════════════════════════
+
+        let _lc_todosRegistros = [];
+        let _lc_iniciado = false;
+
+        // Inicializa quando a aba é aberta (evita chamadas desnecessárias)
+        function initListaComplementar() {
+            if (_lc_iniciado) return;
+            _lc_iniciado = true;
+            // Data padrão = hoje
+            const hoje = new Date();
+            document.getElementById('lc_dataInput').value = hoje.toISOString().split('T')[0];
+            lc_carregarStatus();
+            lc_carregarRegistros();
+        }
+
+        // ── Utilitários ──────────────────────────────────────────────
+        function lc_formatarData(str) {
+            if (!str) return '—';
+            try {
+                const [y, m, d] = str.split('-');
+                return new Date(y, m-1, d).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+            } catch { return str; }
+        }
+
+        function lc_dataParaMonthYear(str) {
+            const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                           'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+            try {
+                const [y, m] = str.split('-');
+                return `${MESES[parseInt(m)-1]} de ${y}`;
+            } catch { return ''; }
+        }
+
+        function lc_tipoBadge(tipo) {
+            const cores = { RMA:'#f093fb', RA:'#4facfe', RAEC:'#43e97b', RMC:'#f5a623' };
+            const texto = { RMA:'#4a0050', RA:'#002a5e', RAEC:'#003820', RMC:'#5a3200' };
+            const t = (tipo || '').toUpperCase();
+            return `<span style="display:inline-block; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:800; background:${cores[t]||'#ecf0f1'}; color:${texto[t]||'#555'};">${t}</span>`;
+        }
+
+        // ── Status da reunião ativa ───────────────────────────────────
+        async function lc_carregarStatus() {
+            try {
+                const snap = await window._firebase.carregarDadosPrincipais
+                    ? null // não existe esse método para reuniao_ativa
+                    : null;
+
+                // Usa o Firebase diretamente via módulo já carregado
+                const r = await lc_getDoc('sistema', 'reuniao_ativa');
+                lc_renderStatus(r);
+            } catch(e) {
+                console.warn('lc_carregarStatus erro:', e);
+            }
+        }
+
+        // Acessa Firestore via objeto db já criado pelo módulo existente
+        async function lc_getDoc(col, docId) {
+            return new Promise((resolve, reject) => {
+                // Aguarda o módulo firebase estar pronto e usa o db exposto
+                if (!window._fbDB) { resolve(null); return; }
+                window._fbDB.getDoc(window._fbDB.doc(window._fbDB.db, col, docId))
+                    .then(snap => resolve(snap.exists() ? snap.data() : null))
+                    .catch(reject);
+            });
+        }
+
+        async function lc_setDoc(col, docId, dados) {
+            if (!window._fbDB) throw new Error('Firebase não pronto');
+            await window._fbDB.setDoc(window._fbDB.doc(window._fbDB.db, col, docId), dados);
+        }
+
+        async function lc_getCollection(col) {
+            if (!window._fbDB) return [];
+            const snap = await window._fbDB.getDocs(window._fbDB.collection(window._fbDB.db, col));
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+
+        function lc_renderStatus(r) {
+            const box = document.getElementById('lc_statusBox');
+            const dot = document.getElementById('lc_statusDot');
+            const val = document.getElementById('lc_statusValue');
+            const sub = document.getElementById('lc_statusSub');
+            if (!box) return;
+
+            if (r && r.ativo) {
+                box.style.background = '#eafaf1';
+                box.style.borderColor = '#a9dfbf';
+                dot.style.background = '#27ae60';
+                dot.style.boxShadow = '0 0 0 0 rgba(39,174,96,0.4)';
+                dot.style.animation = 'pulse-alerta 1.5s infinite';
+                val.innerHTML = `${lc_tipoBadge(r.tipo)} &nbsp; ${lc_formatarData(r.data)}`;
+                sub.textContent = r.descricao || '';
+            } else {
+                box.style.background = '#fdf2f8';
+                box.style.borderColor = '#f1a7d0';
+                dot.style.background = '#bdc3c7';
+                dot.style.boxShadow = '';
+                dot.style.animation = 'none';
+                val.textContent = 'Nenhuma reunião ativa';
+                sub.textContent = 'Configure e ative uma reunião abaixo.';
+            }
+        }
+
+        // ── Ativar reunião ────────────────────────────────────────────
+        async function lc_ativarReuniao() {
+            const tipo = document.getElementById('lc_tipoSelect').value;
+            const data = document.getElementById('lc_dataInput').value;
+            const desc = document.getElementById('lc_descInput').value.trim();
+
+            if (!tipo || !data) {
+                showToast('⚠️ Preencha o tipo e a data da reunião.', 'warning');
+                return;
+            }
+
+            const monthYear = lc_dataParaMonthYear(data);
+            const payload = {
+                ativo: true,
+                tipo,
+                data,
+                monthYear,
+                descricao: desc || `${tipo} – ${lc_formatarData(data)}`,
+                atualizadoEm: new Date().toISOString()
+            };
+
+            try {
+                await lc_setDoc('sistema', 'reuniao_ativa', payload);
+                lc_renderStatus(payload);
+                showToast(`✅ Reunião ${tipo} ativada para ${lc_formatarData(data)}`, 'success');
+            } catch(e) {
+                console.error(e);
+                showToast('❌ Erro ao salvar. Verifique a conexão.', 'warning');
+            }
+        }
+
+        // ── Desativar reunião ─────────────────────────────────────────
+        async function lc_desativarReuniao() {
+            if (!confirm('Desativar a reunião ativa? Os participantes não poderão mais enviar presenças.')) return;
+            try {
+                await lc_setDoc('sistema', 'reuniao_ativa', {
+                    ativo: false,
+                    atualizadoEm: new Date().toISOString()
+                });
+                lc_renderStatus(null);
+                showToast('Reunião desativada.', 'info');
+            } catch(e) {
+                showToast('❌ Erro ao desativar.', 'warning');
+            }
+        }
+
+        // ── Carregar registros ────────────────────────────────────────
+        async function lc_carregarRegistros() {
+            document.getElementById('lc_registrosWrap').innerHTML =
+                '<div style="text-align:center; padding:30px; color:#aaa;"><div style="width:32px; height:32px; border:3px solid #ecf0f1; border-top-color:#3498db; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 12px;"></div>Carregando...</div>';
+
+            try {
+                const lista = await lc_getCollection('presencas_complementares');
+                _lc_todosRegistros = lista.sort((a,b) => (b.registradoEm||'').localeCompare(a.registradoEm||''));
+                lc_filtrarRegistros();
+            } catch(e) {
+                document.getElementById('lc_registrosWrap').innerHTML =
+                    '<p style="color:#e74c3c; text-align:center; padding:20px;">Erro ao carregar registros.</p>';
+            }
+        }
+
+        // ── Filtrar e renderizar registros ────────────────────────────
+        function lc_filtrarRegistros() {
+            const nome = (document.getElementById('lc_filtroNome').value || '').toLowerCase().trim();
+            const tipo = document.getElementById('lc_filtroTipo').value || '';
+
+            let lista = _lc_todosRegistros;
+            if (nome) lista = lista.filter(r => (r.nome||'').toLowerCase().includes(nome));
+            if (tipo) lista = lista.filter(r => (r.tipoReuniao||'').toUpperCase() === tipo.toUpperCase());
+
+            document.getElementById('lc_contador').textContent = `${lista.length} registro(s)`;
+            lc_renderTabela(lista);
+        }
+
+        function lc_renderTabela(lista) {
+            const wrap = document.getElementById('lc_registrosWrap');
+            if (lista.length === 0) {
+                wrap.innerHTML = '<p style="color:#aaa; font-style:italic; text-align:center; padding:30px;">Nenhum registro encontrado.</p>';
+                return;
+            }
+
+            wrap.innerHTML = `
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead>
+                        <tr>
+                            <th style="background:#34495e; color:white; padding:10px 12px; text-align:left;">#</th>
+                            <th style="background:#34495e; color:white; padding:10px 12px; text-align:left;">Nome</th>
+                            <th style="background:#34495e; color:white; padding:10px 12px; text-align:left;">Área</th>
+                            <th style="background:#34495e; color:white; padding:10px 12px; text-align:center;">Reunião</th>
+                            <th style="background:#34495e; color:white; padding:10px 12px; text-align:left;">Data</th>
+                            <th style="background:#34495e; color:white; padding:10px 12px; text-align:center;">Cadastrado</th>
+                            <th style="background:#34495e; color:white; padding:10px 12px; text-align:left;">Registrado em</th>
+                            <th style="background:#34495e; color:white; padding:10px 12px; text-align:center;">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${lista.map((r, i) => `
+                        <tr style="${i%2===0?'':'background:#f9f9f9;'}">
+                            <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; color:#aaa; font-size:11px;">${i+1}</td>
+                            <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1;"><strong>${r.nome||'—'}</strong></td>
+                            <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1;">${r.area||'—'}</td>
+                            <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; text-align:center;">${lc_tipoBadge(r.tipoReuniao)}</td>
+                            <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; font-size:12px;">${lc_formatarData(r.data)}</td>
+                            <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; text-align:center;">
+                                ${r.cadastrado
+                                    ? '<span style="background:#eafaf1; color:#27ae60; border:1px solid #a9dfbf; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700;">✓ Sim</span>'
+                                    : '<span style="background:#fef9e7; color:#d68910; border:1px solid #f9e79f; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700;">Não</span>'}
+                            </td>
+                            <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; font-size:11px; color:#aaa;">
+                                ${r.registradoEm ? new Date(r.registradoEm).toLocaleString('pt-BR') : '—'}
+                            </td>
+                            <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; text-align:center;">
+                                <button onclick="lc_excluirRegistro('${r.id || ''}')" title="Excluir registro"
+                                    style="background:#e74c3c; color:white; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:12px; font-weight:700; transition:background 0.2s;"
+                                    onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e74c3c'">
+                                    🗑️ Excluir
+                                </button>
+                            </td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>`;
+        }
+
+        // ── Excluir registro ──────────────────────────────────────────
+        async function lc_excluirRegistro(id) {
+            if (!id) {
+                showToast('❌ ID do registro não encontrado.', 'warning');
+                return;
+            }
+            if (!confirm('Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.')) return;
+            try {
+                await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js").then(({ getApp }) =>
+                    import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ getFirestore, doc, deleteDoc }) => {
+                        const db = getFirestore(getApp());
+                        return deleteDoc(doc(db, 'presencas_complementares', id));
+                    })
+                );
+                _lc_todosRegistros = _lc_todosRegistros.filter(r => r.id !== id);
+                lc_filtrarRegistros();
+                showToast('✅ Registro excluído com sucesso.', 'success');
+            } catch(e) {
+                console.error(e);
+                showToast('❌ Erro ao excluir o registro.', 'warning');
+            }
+        }
+
+        // ── Expõe Firestore para as funções acima usarem ──────────────
+        // O módulo Firebase já carregou o db; aqui conectamos as funções
+        document.addEventListener('firebaseReady', () => {
+            // O módulo usa import() e expõe apenas window._firebase
+            // Precisamos do db bruto para getDoc/setDoc na nova aba
+            // Solução: reutilizamos o módulo carregando novamente de forma inline
+            import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js").then(({ getApp }) => {
+                import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ getFirestore, doc, setDoc, getDoc, collection, getDocs }) => {
+                    try {
+                        const app = getApp(); // reutiliza o app já inicializado
+                        const db  = getFirestore(app);
+                        window._fbDB = { db, doc, setDoc, getDoc, collection, getDocs };
+                    } catch(e) {
+                        console.warn('_fbDB setup error:', e);
+                    }
+                });
+            });
+        });
 
         // Carregar dados ao iniciar
         loadData();
