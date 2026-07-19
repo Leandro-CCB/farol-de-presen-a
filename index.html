@@ -647,10 +647,143 @@
         }
         @keyframes pulse-alerta { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── MODAL NOVA REUNIÃO / RENOMEAR ── */
+        #modalReuniao {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            z-index: 9000; align-items: center; justify-content: center;
+        }
+        #modalReuniao.open { display: flex; }
+        #modalReuniaoBox {
+            background: white; border-radius: 16px; width: 94%; max-width: 520px;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.4); padding: 32px 28px; position: relative;
+            animation: modalIn 0.2s ease;
+        }
+        @keyframes modalIn { from { opacity:0; transform:translateY(-16px) scale(0.97); } to { opacity:1; transform:none; } }
+        #modalReuniaoBox h3 { font-size:18px; color:#1a2a3a; margin-bottom:6px; }
+        #modalReuniaoBox p.modal-sub { font-size:13px; color:#888; margin-bottom:22px; }
+        #modalReuniaoClose {
+            position:absolute; top:14px; right:18px;
+            background:none; border:none; font-size:22px; cursor:pointer; color:#aaa;
+        }
+        #modalReuniaoClose:hover { color:#e74c3c; }
+        .modal-field { margin-bottom:16px; }
+        .modal-field label { display:block; font-size:12px; font-weight:700; color:#34495e; margin-bottom:6px; text-transform:uppercase; letter-spacing:.4px; }
+        .modal-field input { width:100%; padding:10px 13px; border:2px solid #e0e0e0; border-radius:8px; font-size:14px; color:#2c3e50; outline:none; transition:border-color .2s; }
+        .modal-field input:focus { border-color:#3498db; }
+        .modal-actions { display:flex; gap:10px; margin-top:22px; }
+        .modal-actions button { flex:1; padding:11px; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; transition:all .2s; }
+        .modal-btn-confirm { background:#3498db; color:white; }
+        .modal-btn-confirm:hover { background:#2980b9; }
+        .modal-btn-cancel { background:#f0f0f0; color:#555; }
+        .modal-btn-cancel:hover { background:#e0e0e0; }
+
+        /* ── MODAL CADASTRO RÁPIDO (Lista Complementar) ── */
+        #modalCadRapido {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            z-index: 9100; align-items: center; justify-content: center;
+        }
+        #modalCadRapido.open { display: flex; }
+        #modalCadRapidoBox {
+            background: white; border-radius: 16px; width: 94%; max-width: 460px;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.4); padding: 28px 26px; position: relative;
+            animation: modalIn 0.2s ease;
+        }
+        #modalCadRapidoBox h3 { font-size:17px; color:#1a2a3a; margin-bottom:4px; }
+        #modalCadRapidoBox p.modal-sub { font-size:12.5px; color:#888; margin-bottom:18px; }
+        #modalCadRapidoClose {
+            position:absolute; top:14px; right:18px;
+            background:none; border:none; font-size:22px; cursor:pointer; color:#aaa;
+        }
+        #modalCadRapidoClose:hover { color:#e74c3c; }
+
+        /* ── GERENCIADOR DE REUNIÕES ── */
+        .reuniao-manager-item {
+            display:flex; align-items:center; gap:10px; padding:10px 14px;
+            background:#f8f9fa; border-radius:8px; border:1px solid #e8e8e8; margin-bottom:8px;
+        }
+        .reuniao-manager-item .rm-sigla {
+            font-weight:800; font-size:15px; color:#2c3e50; min-width:60px;
+        }
+        .reuniao-manager-item .rm-desc {
+            flex:1; font-size:13px; color:#666;
+        }
+        .reuniao-manager-item .rm-actions { display:flex; gap:6px; }
+        .rm-btn { padding:5px 10px; border-radius:6px; border:none; font-size:12px; font-weight:600; cursor:pointer; transition:all .2s; }
+        .rm-btn-rename { background:#fff3cd; color:#856404; border:1px solid #ffc107; }
+        .rm-btn-rename:hover { background:#ffc107; color:white; }
+        .rm-btn-delete { background:#fff3f3; color:#e74c3c; border:1px solid #e74c3c; }
+        .rm-btn-delete:hover { background:#e74c3c; color:white; }
+        .rm-badge-fixed { background:#e8f4fd; color:#2980b9; border:1px solid #bde0fe; border-radius:4px; font-size:10px; padding:2px 6px; font-weight:700; }
     </style>
 </head>
 <body>
     <div id="toastContainer"></div>
+
+    <!-- MODAL NOVA REUNIÃO / RENOMEAR -->
+    <div id="modalReuniao">
+        <div id="modalReuniaoBox">
+            <button id="modalReuniaoClose" onclick="fecharModalReuniao()">✕</button>
+            <h3 id="modalReuniaoTitulo">➕ Nova Reunião</h3>
+            <p class="modal-sub" id="modalReuniaoSub">Crie uma nova aba de reunião com farol, gráficos e filtros independentes.</p>
+            <div class="modal-field">
+                <label>Sigla / Nome curto *</label>
+                <input type="text" id="mrSigla" placeholder="Ex: RASP, RM, RDJ" maxlength="8" style="text-transform:uppercase;">
+            </div>
+            <div class="modal-field">
+                <label>Descrição completa *</label>
+                <input type="text" id="mrDesc" placeholder="Ex: Reunião de Senhoras e Programas" maxlength="60">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn-cancel" onclick="fecharModalReuniao()">Cancelar</button>
+                <button class="modal-btn-confirm" id="modalReuniaoConfirm" onclick="confirmarModalReuniao()">✅ Criar Reunião</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CADASTRO RÁPIDO (a partir da Lista Complementar) -->
+    <div id="modalCadRapido">
+        <div id="modalCadRapidoBox">
+            <button id="modalCadRapidoClose" onclick="lc_fecharCadastroRapido()">✕</button>
+            <h3>➕ Incluir no Cadastro</h3>
+            <p class="modal-sub">Preencha os dados para cadastrar esta pessoa no sistema.</p>
+            <div class="modal-field">
+                <label>Nome *</label>
+                <input type="text" id="lcCadNome">
+            </div>
+            <div class="modal-field">
+                <label>Ministério/Cargo *</label>
+                <input type="text" id="lcCadCargo">
+            </div>
+            <div class="modal-field">
+                <label>Localidade *</label>
+                <input type="text" id="lcCadLocalidade">
+            </div>
+            <div class="modal-field">
+                <label>Cidade *</label>
+                <input type="text" id="lcCadCidade">
+            </div>
+            <div class="modal-field">
+                <label>Participa das Reuniões</label>
+                <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:4px;">
+                    <label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer; text-transform:none;">
+                        <input type="checkbox" id="lcCadRMA" style="width:16px;height:16px;"> RMA
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer; text-transform:none;">
+                        <input type="checkbox" id="lcCadRA" style="width:16px;height:16px;"> RA
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer; text-transform:none;">
+                        <input type="checkbox" id="lcCadRAEC" style="width:16px;height:16px;"> RAEC
+                    </label>
+                    <div id="lcCadReunioesDinamicas" style="display:contents;"></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn-cancel" onclick="lc_fecharCadastroRapido()">Cancelar</button>
+                <button class="modal-btn-confirm" onclick="lc_confirmarCadastroRapido()">✅ Cadastrar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL PERFIL INDIVIDUAL -->
     <div id="modalPerfil">
@@ -675,31 +808,31 @@
         </header>
 
         <div class="tabs">
-            <button class="tab-button active" onclick="openTab('dashboard')">
+            <button class="tab-button active" data-tab="dashboard" onclick="openTab('dashboard')">
                 <span class="tab-sigla">📊</span>
                 <span class="tab-desc">Dashboard</span>
             </button>
-            <button class="tab-button" onclick="openTab('cadastro')">
+            <button class="tab-button" data-tab="cadastro" onclick="openTab('cadastro')">
                 <span class="tab-sigla">👥</span>
                 <span class="tab-desc">Cadastro</span>
             </button>
-            <button class="tab-button" onclick="openTab('rma')">
+            <button class="tab-button" data-tab="rma" onclick="openTab('rma')">
                 <span class="tab-sigla">RMA</span>
                 <span class="tab-desc">Ministério e Adm.</span>
             </button>
-            <button class="tab-button" onclick="openTab('ra')">
+            <button class="tab-button" data-tab="ra" onclick="openTab('ra')">
                 <span class="tab-sigla">RA</span>
                 <span class="tab-desc">Reunião Adm.</span>
             </button>
-            <button class="tab-button" onclick="openTab('raec')">
+            <button class="tab-button" data-tab="raec" onclick="openTab('raec')">
                 <span class="tab-sigla">RAEC</span>
                 <span class="tab-desc">Eng. e Compras</span>
             </button>
-            <button class="tab-button" onclick="openTab('justificativas')">
+            <button class="tab-button" data-tab="justificativas" onclick="openTab('justificativas')">
                 <span class="tab-sigla">📝</span>
                 <span class="tab-desc">Justificativas</span>
             </button>
-            <button class="tab-button" onclick="openTab('listaComplementar'); initListaComplementar()">
+            <button class="tab-button" data-tab="listaComplementar" onclick="openTab('listaComplementar'); initListaComplementar()">
                 <span class="tab-sigla">📋</span>
                 <span class="tab-desc">Lista Compl.</span>
             </button>
@@ -931,6 +1064,21 @@
 
         <!-- ABA CADASTRO -->
         <div id="cadastro" class="tab-content">
+
+            <!-- GERENCIADOR DE REUNIÕES -->
+            <div class="section">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                    <h2 style="margin:0; border:none; padding:0;">📋 Gerenciar Reuniões</h2>
+                    <button onclick="abrirModalCriarReuniao()"
+                        style="background:linear-gradient(135deg,#3498db,#2980b9); color:white; border:none; border-radius:10px; padding:10px 20px; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 3px 12px rgba(52,152,219,.4); transition:all .2s;"
+                        onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
+                        ➕ Nova Reunião
+                    </button>
+                </div>
+                <p style="color:#888; font-size:13px; margin-bottom:16px;">Gerencie as abas de reunião disponíveis no sistema. As reuniões fixas (RMA, RA, RAEC) podem ser renomeadas. Você também pode criar novas reuniões personalizadas.</p>
+                <div id="gerenciadorReunioes"></div>
+            </div>
+
             <div class="section">
                 <div class="clear-button-container">
                     <button class="btn-clear" onclick="clearAllCadastro()">🗑️ Limpar Tudo</button>
@@ -975,6 +1123,7 @@
                             <label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer;">
                                 <input type="checkbox" id="manualRAEC" style="width:16px;height:16px;"> RAEC
                             </label>
+                            <div id="manualReunioesDinamicas" style="display:contents;"></div>
                         </div>
                     </div>
                     <div class="form-group full-width">
@@ -1370,7 +1519,11 @@
                         <option value="Enfermidade">🏥 Enfermidade</option>
                         <option value="Outros">📋 Outros</option>
                     </select>
-                    <button onclick="document.getElementById('justFiltroNome').value=''; document.getElementById('justFiltroTipo').value=''; document.getElementById('justFiltroMotivo').value=''; renderJustificativas();"
+                    <select id="justFiltroMes" onchange="renderJustificativas()"
+                        style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                        <option value="">Todos os Meses</option>
+                    </select>
+                    <button onclick="document.getElementById('justFiltroNome').value=''; document.getElementById('justFiltroTipo').value=''; document.getElementById('justFiltroMotivo').value=''; document.getElementById('justFiltroMes').value=''; renderJustificativas();"
                         style="padding:7px 14px; background:#e0e0e0; border:none; border-radius:6px; font-size:12px; cursor:pointer; color:#555;">✕ Limpar</button>
                     <button onclick="carregarJustificativasDoFirebase()" 
                         style="padding:7px 14px; background:#3498db; color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer; margin-left:auto;">🔄 Atualizar</button>
@@ -1804,8 +1957,8 @@
             });
         }
 
-        // Alternar abas
-        function openTab(tabName) {
+        // Alternar abas (legado — substituída abaixo)
+        function _openTab_legacy(tabName) {
             const tabs = document.querySelectorAll('.tab-content');
             const buttons = document.querySelectorAll('.tab-button');
             
@@ -3139,11 +3292,31 @@ Deixe em branco para usar o mês atual (${mesAtual}):`,
             const filtroNome   = (document.getElementById('justFiltroNome')?.value  || '').trim().toLowerCase();
             const filtroTipo   = document.getElementById('justFiltroTipo')?.value   || '';
             const filtroMotivo = document.getElementById('justFiltroMotivo')?.value || '';
+            const filtroMes    = document.getElementById('justFiltroMes')?.value    || '';
+
+            // Popular dropdown de meses dinamicamente com os meses das reuniões registradas
+            const selMes = document.getElementById('justFiltroMes');
+            if (selMes) {
+                const mesOrdemFiltro = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+                const mesesDisponiveis = [...new Set(justificativasData.map(j => j.monthYear).filter(Boolean))];
+                mesesDisponiveis.sort((a, b) => {
+                    const [maN, maA] = a.split(' de ');
+                    const [mbN, mbA] = b.split(' de ');
+                    const yearDiff = parseInt(mbA || 0) - parseInt(maA || 0);
+                    if (yearDiff !== 0) return yearDiff;
+                    return mesOrdemFiltro.indexOf(mbN) - mesOrdemFiltro.indexOf(maN);
+                });
+                const valorAtual = selMes.value;
+                selMes.innerHTML = '<option value="">Todos os Meses</option>' +
+                    mesesDisponiveis.map(m => `<option value="${m}">${m}</option>`).join('');
+                if (mesesDisponiveis.includes(valorAtual)) selMes.value = valorAtual;
+            }
 
             let lista = [...justificativasData];
             if (filtroNome)   lista = lista.filter(j => j.nome.toLowerCase().includes(filtroNome));
             if (filtroTipo)   lista = lista.filter(j => j.tipo === filtroTipo);
             if (filtroMotivo) lista = lista.filter(j => j.motivo === filtroMotivo);
+            if (filtroMes)    lista = lista.filter(j => j.monthYear === filtroMes);
 
             // Ordenar: mais recente primeiro (por timestamp)
             lista.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
@@ -3641,11 +3814,13 @@ Se a célula ainda estiver marcada como J manualmente, ela permanecerá até ser
             const filtroNome   = (document.getElementById('justFiltroNome')?.value  || '').trim().toLowerCase();
             const filtroTipo   = document.getElementById('justFiltroTipo')?.value   || '';
             const filtroMotivo = document.getElementById('justFiltroMotivo')?.value || '';
+            const filtroMes    = document.getElementById('justFiltroMes')?.value    || '';
 
             let lista = [...justificativasData];
             if (filtroNome)   lista = lista.filter(j => j.nome.toLowerCase().includes(filtroNome));
             if (filtroTipo)   lista = lista.filter(j => j.tipo === filtroTipo);
             if (filtroMotivo) lista = lista.filter(j => j.motivo === filtroMotivo);
+            if (filtroMes)    lista = lista.filter(j => j.monthYear === filtroMes);
 
             if (lista.length === 0) { showToast('Nenhuma justificativa para exportar', 'warning'); return; }
 
@@ -3696,6 +3871,22 @@ Se a célula ainda estiver marcada como J manualmente, ela permanecerá até ser
                 grupos[mes][tipo][cargo].push(j);
             });
 
+            // Determinar reunião, mês e ano para o cabeçalho dinâmico
+            const tiposPresentes = [...new Set(lista.map(j => (j.tipo || '').toUpperCase()).filter(Boolean))];
+            const reuniaoTxt = filtroTipo
+                ? filtroTipo.toUpperCase()
+                : (tiposPresentes.length === 1 ? tiposPresentes[0] : 'Varias Reunioes');
+
+            const mesesPresentes = [...new Set(lista.map(j => j.monthYear).filter(Boolean))];
+            let mesTxt = 'Varios Meses', anoTxt = 'Varios Anos';
+            if (mesesPresentes.length === 1) {
+                const [mNome, mAno] = mesesPresentes[0].split(' de ');
+                mesTxt = mNome || 'Nao informado';
+                anoTxt = mAno || 'Nao informado';
+            }
+
+            const cabecalhoTxt = safe(`Justificativa de faltas referente a reuniao ${reuniaoTxt} no mes de ${mesTxt} do ano de ${anoTxt}.`);
+
             // Gerar PDF com jsPDF
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
@@ -3708,20 +3899,22 @@ Se a célula ainda estiver marcada como J manualmente, ela permanecerá até ser
                 if (y + needed > pageH - margin) { pdf.addPage(); y = margin; }
             }
 
-            // Cabeçalho do documento
-            pdf.setFillColor(26, 42, 58);
-            pdf.rect(0, 0, pageW, 20, 'F');
+            // Cabeçalho do documento — fundo azul claro, texto preto
+            const headerLines = pdf.splitTextToSize(cabecalhoTxt, maxW - 6);
+            const headerH = 16 + (headerLines.length - 1) * 5;
+            pdf.setFillColor(214, 234, 248);
+            pdf.rect(0, 0, pageW, headerH, 'F');
             pdf.setFontSize(13);
             pdf.setFont('helvetica', 'bold');
-            pdf.setTextColor(255, 255, 255);
+            pdf.setTextColor(0, 0, 0);
             pdf.text('Farol de Presenca - CCB', margin, 8);
-            pdf.setFontSize(9);
+            pdf.setFontSize(9.5);
             pdf.setFont('helvetica', 'normal');
-            pdf.text('Relatorio de Justificativas de Ausencia', margin, 13.5);
-            pdf.setFontSize(8);
-            pdf.setTextColor(200, 200, 200);
-            pdf.text('Gerado em: ' + new Date().toLocaleString('pt-BR'), pageW - margin, 13.5, { align: 'right' });
-            y = 26;
+            pdf.setTextColor(0, 0, 0);
+            headerLines.forEach((line, i) => {
+                pdf.text(line, margin, 14 + i * 5);
+            });
+            y = headerH + 6;
 
             const TIPO_RGB = {
                 RMA: [52, 152, 219],
@@ -3738,7 +3931,7 @@ Se a célula ainda estiver marcada como J manualmente, ela permanecerá até ser
                 pdf.setFontSize(10);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setTextColor(255, 255, 255);
-                pdf.text(safe('📅  ' + mes), margin + 3, y + 5.5);
+                pdf.text(safe(mes), margin + 3, y + 5.5);
                 y += 10;
 
                 Object.keys(grupos[mes]).forEach(tipo => {
@@ -4024,17 +4217,25 @@ Se a célula ainda estiver marcada como J manualmente, ela permanecerá até ser
                         </tr>
                     </thead>
                     <tbody>
-                        ${lista.map((r, i) => `
+                        ${lista.map((r, i) => {
+                        const jaCadastrado = !!r.cadastrado || cadastroPessoas.some(p => (p.nome||'').trim().toLowerCase() === (r.nome||'').trim().toLowerCase());
+                        return `
                         <tr style="${i%2===0?'':'background:#f9f9f9;'}">
                             <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; color:#aaa; font-size:11px;">${i+1}</td>
                             <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1;"><strong>${r.nome||'—'}</strong></td>
                             <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1;">${r.area||'—'}</td>
                             <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; text-align:center;">${lc_tipoBadge(r.tipoReuniao)}</td>
                             <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; font-size:12px;">${lc_formatarData(r.data)}</td>
-                            <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; text-align:center;">
-                                ${r.cadastrado
+                            <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; text-align:center; white-space:nowrap;">
+                                ${jaCadastrado
                                     ? '<span style="background:#eafaf1; color:#27ae60; border:1px solid #a9dfbf; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700;">✓ Sim</span>'
-                                    : '<span style="background:#fef9e7; color:#d68910; border:1px solid #f9e79f; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700;">Não</span>'}
+                                    : `<span style="background:#fef9e7; color:#d68910; border:1px solid #f9e79f; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700;">Não</span>
+                                       <button onclick="lc_abrirCadastroRapido('${(r.id||'').replace(/'/g,"\\'")}')" title="Incluir esta pessoa no cadastro"
+                                            style="margin-left:6px; background:#eaf4fd; color:#2980b9; border:1px solid #aed6f1; border-radius:14px; padding:2px 9px; font-size:11px; font-weight:700; cursor:pointer;"
+                                            onmouseover="this.style.background='#3498db';this.style.color='white';"
+                                            onmouseout="this.style.background='#eaf4fd';this.style.color='#2980b9';">
+                                            ➕ Cadastrar
+                                       </button>`}
                             </td>
                             <td style="padding:9px 12px; border-bottom:1px solid #ecf0f1; font-size:11px; color:#aaa;">
                                 ${r.registradoEm ? new Date(r.registradoEm).toLocaleString('pt-BR') : '—'}
@@ -4046,7 +4247,8 @@ Se a célula ainda estiver marcada como J manualmente, ela permanecerá até ser
                                     🗑️ Excluir
                                 </button>
                             </td>
-                        </tr>`).join('')}
+                        </tr>`;
+                        }).join('')}
                     </tbody>
                 </table>`;
         }
@@ -4074,6 +4276,105 @@ Se a célula ainda estiver marcada como J manualmente, ela permanecerá até ser
             }
         }
 
+        // ── Cadastro rápido a partir de um registro sem cadastro ──────
+        let _lcCadRapidoRegistroId = null;
+
+        function lc_abrirCadastroRapido(id) {
+            const r = _lc_todosRegistros.find(x => x.id === id);
+            if (!r) { showToast('❌ Registro não encontrado.', 'warning'); return; }
+
+            // Se a pessoa já está cadastrada (nome já existe no Cadastro), apenas sincroniza o status
+            const jaExiste = cadastroPessoas.some(p => (p.nome||'').trim().toLowerCase() === (r.nome||'').trim().toLowerCase());
+            if (jaExiste) {
+                lc_marcarRegistroComoCadastrado(id);
+                showToast(`ℹ️ ${r.nome} já estava cadastrado(a) — status atualizado.`, 'success');
+                return;
+            }
+
+            _lcCadRapidoRegistroId = id;
+
+            document.getElementById('lcCadNome').value = r.nome || '';
+            document.getElementById('lcCadCargo').value = r.area || '';
+            document.getElementById('lcCadLocalidade').value = '';
+            document.getElementById('lcCadCidade').value = '';
+
+            // Marca a reunião correspondente ao registro
+            const tipo = (r.tipoReuniao || '').toLowerCase();
+            document.getElementById('lcCadRMA').checked = tipo === 'rma';
+            document.getElementById('lcCadRA').checked = tipo === 'ra';
+            document.getElementById('lcCadRAEC').checked = tipo === 'raec';
+            customMeetings.forEach(cm => {
+                const cb = document.getElementById(`lcCadCM_${cm.id}`);
+                if (cb) cb.checked = tipo === cm.id;
+            });
+
+            document.getElementById('modalCadRapido').classList.add('open');
+        }
+
+        function lc_fecharCadastroRapido() {
+            document.getElementById('modalCadRapido').classList.remove('open');
+            _lcCadRapidoRegistroId = null;
+        }
+
+        // Marca um registro da Lista Complementar como cadastrado (localmente + Firestore)
+        async function lc_marcarRegistroComoCadastrado(id) {
+            const registro = _lc_todosRegistros.find(x => x.id === id);
+            if (!registro) return;
+            registro.cadastrado = true;
+            try {
+                const { id: _omit, ...dadosRegistro } = registro;
+                await lc_setDoc('presencas_complementares', id, { ...dadosRegistro, cadastrado: true });
+            } catch(e) {
+                console.warn('Não foi possível sincronizar o status cadastrado:', e);
+            }
+            lc_filtrarRegistros();
+        }
+
+        async function lc_confirmarCadastroRapido() {
+            const nome = document.getElementById('lcCadNome').value.trim();
+            const cargo = document.getElementById('lcCadCargo').value.trim();
+            const localidade = document.getElementById('lcCadLocalidade').value.trim();
+            const cidade = document.getElementById('lcCadCidade').value.trim();
+
+            if (!nome || !cargo || !localidade || !cidade) {
+                showToast('❌ Preencha todos os campos obrigatórios.', 'warning');
+                return;
+            }
+
+            const reunioes = {
+                rma: document.getElementById('lcCadRMA').checked,
+                ra:  document.getElementById('lcCadRA').checked,
+                raec:document.getElementById('lcCadRAEC').checked
+            };
+            customMeetings.forEach(cm => {
+                const cb = document.getElementById(`lcCadCM_${cm.id}`);
+                reunioes[cm.id] = cb ? cb.checked : false;
+            });
+
+            const id = _lcCadRapidoRegistroId;
+            const exists = cadastroPessoas.find(p => p.nome.toLowerCase() === nome.toLowerCase());
+            if (exists) {
+                // Pessoa já cadastrada (ex: nome foi editado para coincidir) — apenas sincroniza o registro
+                if (id) await lc_marcarRegistroComoCadastrado(id);
+                lc_fecharCadastroRapido();
+                showToast(`ℹ️ ${nome} já estava cadastrado(a) — status atualizado.`, 'success');
+                return;
+            }
+
+            const pessoa = { nome, cargo, localidade, cidade, reunioes };
+            cadastroPessoas.push(pessoa);
+            renderCadastroTable();
+            renderFarol('rma'); renderFarol('ra'); renderFarol('raec');
+            customMeetings.forEach(cm => renderFarol(cm.id));
+            saveData();
+
+            // Atualiza o registro da Lista Complementar como cadastrado
+            if (id) await lc_marcarRegistroComoCadastrado(id);
+
+            lc_fecharCadastroRapido();
+            showToast(`✅ ${nome} adicionado(a) ao cadastro!`, 'success');
+        }
+
         // ── Expõe Firestore para as funções acima usarem ──────────────
         // O módulo Firebase já carregou o db; aqui conectamos as funções
         document.addEventListener('firebaseReady', () => {
@@ -4092,6 +4393,1021 @@ Se a célula ainda estiver marcada como J manualmente, ela permanecerá até ser
                 });
             });
         });
+
+        // ══════════════════════════════════════════════════════════════
+        // SISTEMA DE REUNIÕES CUSTOMIZADAS
+        // ══════════════════════════════════════════════════════════════
+
+        // Reuniões fixas do sistema (podem ser renomeadas, não excluídas)
+        const FIXED_MEETINGS = ['rma', 'ra', 'raec'];
+
+        // Mapa de nomes de reuniões (sigla → { sigla, desc })
+        // Começa com os padrões e pode ser sobrescrito pelo usuário
+        let meetingNames = {
+            rma:  { sigla: 'RMA',  desc: 'Ministério e Adm.' },
+            ra:   { sigla: 'RA',   desc: 'Reunião Adm.' },
+            raec: { sigla: 'RAEC', desc: 'Eng. e Compras' }
+        };
+
+        // Reuniões customizadas: array de { id, sigla, desc, data: { months:[], history:[] } }
+        let customMeetings = [];
+
+        // Obtém o objeto de dados para qualquer tipo (fixo ou custom)
+        function getDataObj(tipo) {
+            if (tipo === 'rma')  return rmaData;
+            if (tipo === 'ra')   return raData;
+            if (tipo === 'raec') return raecData;
+            if (tipo === 'rmc')  return rmcData;
+            const cm = customMeetings.find(m => m.id === tipo);
+            return cm ? cm.data : null;
+        }
+
+        // Lista todos os tipos ativos (fixos + custom)
+        function getAllTipos() {
+            return ['rma', 'ra', 'raec', ...customMeetings.map(m => m.id)];
+        }
+
+        // Obtém o display name de um tipo
+        function getTipoNome(tipo) {
+            const n = meetingNames[tipo];
+            if (n) return n.sigla;
+            const cm = customMeetings.find(m => m.id === tipo);
+            return cm ? cm.sigla : tipo.toUpperCase();
+        }
+
+        // ── Modal state ──
+        let _modalMode = null; // 'create' | 'rename'
+        let _modalRenameTarget = null; // tipo id being renamed
+
+        function abrirModalCriarReuniao() {
+            _modalMode = 'create';
+            _modalRenameTarget = null;
+            document.getElementById('modalReuniaoTitulo').textContent = '➕ Nova Reunião';
+            document.getElementById('modalReuniaoSub').textContent = 'Crie uma nova aba de reunião com farol, gráficos e filtros independentes.';
+            document.getElementById('modalReuniaoConfirm').textContent = '✅ Criar Reunião';
+            document.getElementById('mrSigla').value = '';
+            document.getElementById('mrDesc').value = '';
+            document.getElementById('mrSigla').readOnly = false;
+            document.getElementById('mrSigla').style.opacity = '1';
+            document.getElementById('modalReuniao').classList.add('open');
+            setTimeout(() => document.getElementById('mrSigla').focus(), 100);
+        }
+
+        function abrirModalRenomear(tipo) {
+            _modalMode = 'rename';
+            _modalRenameTarget = tipo;
+            const isFixed = FIXED_MEETINGS.includes(tipo);
+            const current = meetingNames[tipo] || customMeetings.find(m => m.id === tipo) || {};
+            const currentSigla = current.sigla || tipo.toUpperCase();
+            const currentDesc = current.desc || '';
+
+            document.getElementById('modalReuniaoTitulo').textContent = `✏️ Renomear Reunião`;
+            document.getElementById('modalReuniaoSub').textContent = isFixed
+                ? `Renomeie a reunião "${currentSigla}". A sigla interna (${tipo.toUpperCase()}) não muda, mas o nome exibido em todo o sistema será atualizado.`
+                : `Renomeie a reunião "${currentSigla}". O nome será atualizado em todo o sistema.`;
+            document.getElementById('modalReuniaoConfirm').textContent = '✅ Salvar Nome';
+            document.getElementById('mrSigla').value = currentSigla;
+            document.getElementById('mrDesc').value = currentDesc;
+
+            // Para fixas, bloquear a sigla
+            if (isFixed) {
+                document.getElementById('mrSigla').readOnly = true;
+                document.getElementById('mrSigla').style.opacity = '0.6';
+            } else {
+                document.getElementById('mrSigla').readOnly = false;
+                document.getElementById('mrSigla').style.opacity = '1';
+            }
+
+            document.getElementById('modalReuniao').classList.add('open');
+            setTimeout(() => document.getElementById('mrDesc').focus(), 100);
+        }
+
+        function fecharModalReuniao() {
+            document.getElementById('modalReuniao').classList.remove('open');
+        }
+
+        function confirmarModalReuniao() {
+            const sigla = document.getElementById('mrSigla').value.trim().toUpperCase();
+            const desc  = document.getElementById('mrDesc').value.trim();
+
+            if (!sigla) { showToast('⚠️ Informe a sigla da reunião.', 'warning'); return; }
+            if (!desc)  { showToast('⚠️ Informe a descrição da reunião.', 'warning'); return; }
+
+            if (_modalMode === 'create') {
+                criarNovaReuniao(sigla, desc);
+            } else if (_modalMode === 'rename') {
+                renomearReuniao(_modalRenameTarget, sigla, desc);
+            }
+        }
+
+        function criarNovaReuniao(sigla, desc) {
+            // Verificar duplicata de sigla
+            const allSiglas = [
+                ...Object.values(meetingNames).map(n => n.sigla),
+                ...customMeetings.map(m => m.sigla)
+            ];
+            if (allSiglas.includes(sigla)) {
+                showToast('⚠️ Já existe uma reunião com essa sigla.', 'warning');
+                return;
+            }
+
+            // Criar id único (sigla em minúsculas, sem caracteres especiais)
+            const id = sigla.toLowerCase().replace(/[^a-z0-9]/g, '') + '_' + Date.now();
+
+            const novaReuniao = {
+                id,
+                sigla,
+                desc,
+                data: { months: [], history: [] }
+            };
+            customMeetings.push(novaReuniao);
+
+            // Adicionar a nova reunião ao meetingNames para lookup
+            meetingNames[id] = { sigla, desc };
+
+            // Adicionar anoAtivo
+            anoAtivo[id] = null;
+
+            fecharModalReuniao();
+            renderTabs();
+            renderGerenciadorReunioes();
+            atualizarCadastroParaCustomMeetings();
+            saveData();
+            showToast(`✅ Reunião "${sigla}" criada com sucesso!`, 'success');
+
+            // Abrir a nova aba automaticamente
+            setTimeout(() => {
+                const btn = document.querySelector(`[data-tab="${id}"]`);
+                if (btn) btn.click();
+            }, 100);
+        }
+
+        function renomearReuniao(tipo, novaSigla, novaDesc) {
+            const isFixed = FIXED_MEETINGS.includes(tipo);
+
+            if (isFixed) {
+                // Para fixas, só muda o display name
+                meetingNames[tipo] = { sigla: novaSigla, desc: novaDesc };
+            } else {
+                // Para custom, pode mudar sigla e desc
+                const cm = customMeetings.find(m => m.id === tipo);
+                if (!cm) return;
+                cm.sigla = novaSigla;
+                cm.desc = novaDesc;
+                meetingNames[tipo] = { sigla: novaSigla, desc: novaDesc };
+            }
+
+            fecharModalReuniao();
+            renderTabs();
+            renderGerenciadorReunioes();
+            updateDashboard();
+            // Re-render farois e headers
+            getAllTipos().forEach(t => {
+                if (getDataObj(t)) {
+                    renderFarol(t);
+                    renderHistory(t);
+                }
+            });
+            saveData();
+            showToast(`✅ Reunião renomeada para "${novaSigla}"!`, 'success');
+        }
+
+        function excluirReuniaoCustum(id) {
+            const cm = customMeetings.find(m => m.id === id);
+            if (!cm) return;
+            if (!confirm(`Excluir a reunião "${cm.sigla}"?\n\nTodos os dados de presença desta reunião serão perdidos permanentemente.`)) return;
+
+            customMeetings = customMeetings.filter(m => m.id !== id);
+            delete meetingNames[id];
+            delete anoAtivo[id];
+
+            // Remover overrides do localStorage
+            clearJustifications(id);
+
+            // Remover tab content do DOM
+            const tabContent = document.getElementById(id);
+            if (tabContent) tabContent.remove();
+
+            renderTabs();
+            renderGerenciadorReunioes();
+            atualizarCadastroParaCustomMeetings();
+            updateDashboard();
+            saveData();
+
+            // Voltar para o cadastro
+            document.querySelector('[data-tab="cadastro"]').click();
+            showToast(`✅ Reunião "${cm.sigla}" excluída.`, 'info');
+        }
+
+        // ── Renderizar abas dinamicamente ──
+        function renderTabs() {
+            const tabsContainer = document.querySelector('.tabs');
+            // Remover tabs customizadas existentes
+            tabsContainer.querySelectorAll('[data-tab-custom]').forEach(el => el.remove());
+
+            // Atualizar labels das abas fixas
+            const fixedMap = {
+                rma: document.querySelector('[data-tab="rma"]'),
+                ra:  document.querySelector('[data-tab="ra"]'),
+                raec:document.querySelector('[data-tab="raec"]')
+            };
+            Object.entries(fixedMap).forEach(([tipo, btn]) => {
+                if (!btn) return;
+                const n = meetingNames[tipo] || {};
+                const siglaEl = btn.querySelector('.tab-sigla');
+                const descEl  = btn.querySelector('.tab-desc');
+                if (siglaEl) siglaEl.textContent = n.sigla || tipo.toUpperCase();
+                if (descEl)  descEl.textContent  = n.desc  || '';
+            });
+
+            // Inserir abas customizadas antes da aba de justificativas
+            const justBtn = document.querySelector('[data-tab="justificativas"]');
+            customMeetings.forEach(cm => {
+                const btn = document.createElement('button');
+                btn.className = 'tab-button';
+                btn.setAttribute('data-tab', cm.id);
+                btn.setAttribute('data-tab-custom', '1');
+                btn.innerHTML = `<span class="tab-sigla">${cm.sigla}</span><span class="tab-desc">${cm.desc}</span>`;
+                btn.onclick = function() { openTab(cm.id, btn); };
+                tabsContainer.insertBefore(btn, justBtn);
+
+                // Garantir que o conteúdo da aba exista no DOM
+                ensureCustomTabContent(cm);
+            });
+        }
+
+        // ── Criar conteúdo da aba para reunião custom ──
+        function ensureCustomTabContent(cm) {
+            if (document.getElementById(cm.id)) return; // já existe
+            const tipoUp = cm.sigla;
+
+            const div = document.createElement('div');
+            div.id = cm.id;
+            div.className = 'tab-content';
+            div.innerHTML = `
+                <!-- FILTRO DE ANO -->
+                <div style="background:white; border-radius:8px; padding:14px 20px; margin-bottom:16px; display:flex; align-items:center; gap:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); flex-wrap:wrap;">
+                    <span style="font-size:14px; font-weight:bold; color:#2c3e50;">📅 Ano:</span>
+                    <div id="${cm.id}AnoBtns" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+                    <span style="font-size:12px; color:#aaa; margin-left:auto;" id="${cm.id}AnoInfo"></span>
+                    <button onclick="adicionarMesTeste('${cm.id}')" title="Adicionar mês manualmente"
+                        style="padding:5px 12px; background:#f0f4f8; border:1px dashed #aaa; border-radius:6px; font-size:11px; color:#777; cursor:pointer; white-space:nowrap;">
+                        ➕ Adicionar mês
+                    </button>
+                </div>
+
+                <div class="section">
+                    <div class="clear-button-container">
+                        <button class="btn-clear" onclick="clearDataForType('${cm.id}')">🗑️ Limpar ${tipoUp}</button>
+                    </div>
+                    <h2>📤 Upload de Excel de Presença - ${tipoUp}</h2>
+                    <div class="upload-area" onclick="document.getElementById('${cm.id}ExcelInput').click()">
+                        <p>📊 Clique aqui ou arraste um arquivo Excel</p>
+                        <p style="font-size:12px; color:#888; margin-top:10px;">Formatos aceitos: .xlsx, .xls</p>
+                        <input type="file" id="${cm.id}ExcelInput" accept=".xlsx,.xls" onchange="uploadPresencaExcel(event,'${cm.id}')">
+                    </div>
+                    <div id="${cm.id}Message" class="message"></div>
+                </div>
+
+                <div class="section" id="${cm.id}AuditSection">
+                    <h2>🔍 Auditoria de Importação - ${tipoUp}</h2>
+                    <div id="${cm.id}AuditPanel">
+                        <p style="color:#aaa; font-style:italic; font-size:13px;">Nenhuma importação realizada ainda.</p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>🚦 Farol de Presença - ${tipoUp}</h2>
+                    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; padding:12px 14px; background:#f4f8ff; border-radius:8px; border:1px solid #d0e4f7;">
+                        <span style="font-size:13px; font-weight:bold; color:#2c3e50;">🔍 Filtrar:</span>
+                        <input type="text" id="${cm.id}FiltroNome" placeholder="Buscar por nome..." oninput="renderFarol('${cm.id}')"
+                            style="padding:7px 12px; border:1px solid #ccc; border-radius:6px; font-size:13px; min-width:180px;">
+                        <select id="${cm.id}FiltroCargo" onchange="renderFarol('${cm.id}')"
+                            style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                            <option value="">Todos os Cargos</option>
+                            <option value="Ancião">⛪ Ancião</option>
+                            <option value="Diácono">🙏 Diácono</option>
+                            <option value="Cooperador Ofício Ministerial">✝️ Coop. Ofício Ministerial</option>
+                            <option value="Cooperador de Jovens">👥 Coop. de Jovens</option>
+                            <option value="Encarregado Regional">🗺️ Encarregado Regional</option>
+                            <option value="Administração">📋 Administração</option>
+                            <option value="Conselho Fiscal">🔍 Conselho Fiscal</option>
+                            <option value="Suplente do Conselho Fiscal">🔍 Suplente C. Fiscal</option>
+                            <option value="Colaboradores">🤝 Colaboradores</option>
+                        </select>
+                        <select id="${cm.id}FiltroMes" onchange="renderFarol('${cm.id}')"
+                            style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px;">
+                            <option value="">Todos os Meses</option>
+                        </select>
+                        <button onclick="document.getElementById('${cm.id}FiltroNome').value=''; document.getElementById('${cm.id}FiltroCargo').value=''; document.getElementById('${cm.id}FiltroMes').value=''; renderFarol('${cm.id}');"
+                            style="padding:7px 14px; background:#e0e0e0; border:none; border-radius:6px; font-size:12px; cursor:pointer; color:#555;">✕ Limpar filtros</button>
+                        <span id="${cm.id}FiltroInfo" style="font-size:12px; color:#888; margin-left:auto;"></span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table id="${cm.id}FarolTable">
+                            <thead>
+                                <tr id="${cm.id}FarolHeader">
+                                    <th>Nome</th>
+                                    <th>Ministério/Cargo</th>
+                                    <th>Localidade</th>
+                                </tr>
+                            </thead>
+                            <tbody id="${cm.id}FarolBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="export-buttons">
+                        <button class="btn btn-success" onclick="exportToExcel('${cm.id}')">📊 Exportar Excel</button>
+                        <button class="btn btn-danger" onclick="exportToPDF('${cm.id}')">📄 Exportar PDF</button>
+                        <button class="btn" style="background:#8e44ad;color:white;" onclick="exportarAusentesMes('${cm.id}')">📋 Ausentes do Mês</button>
+                    </div>
+                </div>`;
+
+            // Inserir antes do footer / lista complementar
+            const listaCompl = document.getElementById('listaComplementar');
+            listaCompl.parentNode.insertBefore(div, listaCompl);
+        }
+
+        // ── Renderizar gerenciador de reuniões ──
+        function renderGerenciadorReunioes() {
+            const container = document.getElementById('gerenciadorReunioes');
+            if (!container) return;
+
+            let html = '';
+
+            // Reuniões fixas
+            FIXED_MEETINGS.forEach(tipo => {
+                const n = meetingNames[tipo] || {};
+                html += `
+                <div class="reuniao-manager-item">
+                    <div class="rm-sigla">${n.sigla || tipo.toUpperCase()}</div>
+                    <div class="rm-desc">${n.desc || ''}</div>
+                    <span class="rm-badge-fixed">Fixo</span>
+                    <div class="rm-actions">
+                        <button class="rm-btn rm-btn-rename" onclick="abrirModalRenomear('${tipo}')">✏️ Renomear</button>
+                    </div>
+                </div>`;
+            });
+
+            // Reuniões customizadas
+            customMeetings.forEach(cm => {
+                html += `
+                <div class="reuniao-manager-item">
+                    <div class="rm-sigla">${cm.sigla}</div>
+                    <div class="rm-desc">${cm.desc}</div>
+                    <div class="rm-actions">
+                        <button class="rm-btn rm-btn-rename" onclick="abrirModalRenomear('${cm.id}')">✏️ Renomear</button>
+                        <button class="rm-btn rm-btn-delete" onclick="excluirReuniaoCustum('${cm.id}')">🗑️ Excluir</button>
+                    </div>
+                </div>`;
+            });
+
+            if (!html) html = '<p style="color:#aaa; font-style:italic;">Nenhuma reunião cadastrada.</p>';
+            container.innerHTML = html;
+        }
+
+        // ── Atualizar colunas do cadastro para incluir reuniões customizadas ──
+        function atualizarCadastroParaCustomMeetings() {
+            // Atualiza o select de filtro de reunião
+            const sel = document.getElementById('cadastroFiltroReuniao');
+            if (sel) {
+                const currentVal = sel.value;
+                sel.innerHTML = `<option value="">Todas as Reuniões</option>
+                    <option value="rma">RMA</option>
+                    <option value="ra">RA</option>
+                    <option value="raec">RAEC</option>`;
+                customMeetings.forEach(cm => {
+                    const opt = document.createElement('option');
+                    opt.value = cm.id;
+                    opt.textContent = cm.sigla;
+                    sel.appendChild(opt);
+                });
+                sel.value = currentVal;
+            }
+
+            // Atualizar checkboxes do cadastro manual
+            const checkboxesDiv = document.getElementById('manualReunioesDinamicas');
+            if (checkboxesDiv) {
+                let html = '';
+                customMeetings.forEach(cm => {
+                    html += `<label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer;">
+                        <input type="checkbox" id="manualCM_${cm.id}" style="width:16px;height:16px;"> ${cm.sigla}
+                    </label>`;
+                });
+                checkboxesDiv.innerHTML = html;
+            }
+
+            // Atualizar checkboxes do modal de cadastro rápido (Lista Complementar)
+            const lcCheckboxesDiv = document.getElementById('lcCadReunioesDinamicas');
+            if (lcCheckboxesDiv) {
+                let html2 = '';
+                customMeetings.forEach(cm => {
+                    html2 += `<label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer; text-transform:none;">
+                        <input type="checkbox" id="lcCadCM_${cm.id}" style="width:16px;height:16px;"> ${cm.sigla}
+                    </label>`;
+                });
+                lcCheckboxesDiv.innerHTML = html2;
+            }
+
+            renderCadastroTable();
+        }
+
+        // ── Patch: openTab precisa aceitar elemento botão ──
+        const _origOpenTab = openTab;
+        function openTab(tabName, btnEl) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.tab-button');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            const tabEl = document.getElementById(tabName);
+            if (tabEl) tabEl.classList.add('active');
+
+            // Encontrar o botão certo
+            if (btnEl) {
+                btnEl.classList.add('active');
+            } else {
+                // Tentar pelo data-tab
+                const btn2 = document.querySelector(`[data-tab="${tabName}"]`);
+                if (btn2) btn2.classList.add('active');
+                else if (event && event.target) event.target.classList.add('active');
+            }
+
+            if (tabName === 'dashboard') {
+                updateDashboard();
+            }
+            // Para reuniões customizadas, renderizar farol e histórico
+            if (customMeetings.find(m => m.id === tabName)) {
+                renderAnoBtns(tabName);
+                renderFarol(tabName);
+                renderHistory(tabName);
+            }
+        }
+
+        // ── Patch: funções que usam tipo hardcoded precisam aceitar custom ──
+        // Patch getDataObj em lugar de ternários inline
+        const _origGetAnosDisponiveis = getAnosDisponiveis;
+        function getAnosDisponiveis(tipo) {
+            const dataObj = getDataObj(tipo);
+            if (!dataObj) return [];
+            const anos = new Set();
+            dataObj.months.forEach(m => {
+                const parts = m.split(' de ');
+                if (parts.length === 2) anos.add(parts[1]);
+            });
+            return [...anos].sort();
+        }
+
+        const _origGetMesesFiltrados = getMesesFiltrados;
+        function getMesesFiltrados(tipo) {
+            const dataObj = getDataObj(tipo);
+            if (!dataObj) return [];
+            const ano = anoAtivo[tipo];
+            if (!ano) return dataObj.months;
+            return dataObj.months.filter(m => m.endsWith(' de ' + ano));
+        }
+
+        function getMesesFiltrados_byAno(tipo, ano) {
+            const dataObj = getDataObj(tipo);
+            if (!dataObj) return [];
+            return dataObj.months.filter(m => m.endsWith(' de ' + ano));
+        }
+
+        // Patch renderFarol para funcionar com custom
+        const _origRenderFarol = renderFarol;
+        function renderFarol(tipo) {
+            const dataObj = getDataObj(tipo);
+            if (!dataObj) return;
+            const header = document.getElementById(`${tipo}FarolHeader`);
+            const tbody = document.getElementById(`${tipo}FarolBody`);
+            if (!header || !tbody) return;
+
+            while (header.children.length > 3) header.removeChild(header.lastChild);
+            tbody.innerHTML = '';
+
+            popularFiltroMes(tipo);
+            const filtroMesEl2 = document.getElementById(`${tipo}FiltroMes`);
+            const filtroMesSel = filtroMesEl2 ? filtroMesEl2.value : '';
+            let mesesVisiveis = getMesesFiltrados(tipo);
+            if (filtroMesSel) mesesVisiveis = mesesVisiveis.filter(m => m === filtroMesSel);
+            mesesVisiveis.forEach(month => {
+                const th = document.createElement('th');
+                th.textContent = month; th.style.minWidth = '100px';
+                header.appendChild(th);
+            });
+
+            const filtroNomeEl = document.getElementById(`${tipo}FiltroNome`);
+            const filtroCargoEl = document.getElementById(`${tipo}FiltroCargo`);
+            const filtroNome = filtroNomeEl ? filtroNomeEl.value.trim().toLowerCase() : '';
+            const filtroCargo = filtroCargoEl ? filtroCargoEl.value : '';
+
+            let pessoasDoTipo = cadastroPessoas.filter(p => !p.reunioes || p.reunioes[tipo] !== false);
+            if (filtroNome) pessoasDoTipo = pessoasDoTipo.filter(p => p.nome.toLowerCase().includes(filtroNome));
+            if (filtroCargo) pessoasDoTipo = pessoasDoTipo.filter(p => normalizeCargo(p.cargo) === filtroCargo);
+
+            const infoEl = document.getElementById(`${tipo}FiltroInfo`);
+            if (infoEl) {
+                const total = cadastroPessoas.filter(p => !p.reunioes || p.reunioes[tipo] !== false).length;
+                infoEl.textContent = (filtroNome || filtroCargo) ? `Exibindo ${pessoasDoTipo.length} de ${total} pessoa(s)` : `${total} pessoa(s)`;
+            }
+
+            const pessoasOrdenadas = sortByHierarchy([...pessoasDoTipo], p => p.cargo);
+            pessoasOrdenadas.forEach(pessoa => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${pessoa.nome}</td><td>${pessoa.cargo}</td><td>${pessoa.localidade}</td>`;
+                mesesVisiveis.forEach(month => {
+                    const td = document.createElement('td');
+                    td.className = 'presence-cell';
+                    const presente = dataObj.history.find(h =>
+                        h.monthYear === month && h.nome.toLowerCase() === pessoa.nome.toLowerCase() && h.presente === true);
+                    const justKey = `${tipo}_${pessoa.nome}_${month}`;
+                    const cellState = localStorage.getItem(justKey);
+                    const temJustificativaFirebase = justificativasData.some(j =>
+                        j.tipo === tipo && j.nome.toLowerCase().trim() === pessoa.nome.toLowerCase().trim() && j.monthYear === month);
+
+                    if (temJustificativaFirebase || cellState === 'J') {
+                        if (temJustificativaFirebase && cellState !== 'J') localStorage.setItem(justKey, 'J');
+                        const just = justificativasData.find(j => j.tipo === tipo && j.nome.toLowerCase().trim() === pessoa.nome.toLowerCase().trim() && j.monthYear === month);
+                        td.classList.add('justified'); td.textContent = 'J';
+                        td.title = just ? `Justificativa: ${just.motivo}${just.observacao ? ' — '+just.observacao : ''}` : 'Justificado';
+                        td.style.cursor = 'pointer';
+                        td.onclick = function(e) { showPresencePopup(e, td, justKey); };
+                    } else if (cellState === 'A') {
+                        td.classList.add('absent'); td.textContent = '';
+                        td.style.cursor = 'pointer';
+                        td.onclick = function(e) { showPresencePopup(e, td, justKey); };
+                    } else if (presente && !cellState) {
+                        td.classList.add('present'); td.textContent = '✓';
+                        td.style.cursor = 'pointer';
+                        td.onclick = function(e) { showPresencePopup(e, td, justKey); };
+                    } else if (cellState === 'P') {
+                        td.classList.add('present-manual'); td.textContent = '✓';
+                        td.style.cursor = 'pointer';
+                        td.onclick = function(e) { showPresencePopup(e, td, justKey); };
+                    } else {
+                        td.classList.add('absent'); td.textContent = '';
+                        setAbsentClick(td, justKey);
+                    }
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Patch renderHistory para aceitar custom
+        const _origRenderHistory = renderHistory;
+        function renderHistory(tipo) {
+            const panel = document.getElementById(`${tipo}AuditPanel`);
+            if (!panel) return;
+            const dataObj = getDataObj(tipo);
+            if (!dataObj) return;
+            const logs = (window._auditLog && window._auditLog[tipo]) || [];
+            const mesesImportados = getMesesFiltrados(tipo);
+            if (mesesImportados.length === 0 && logs.length === 0) {
+                panel.innerHTML = '<p style="color:#aaa; font-style:italic; font-size:13px;">Nenhuma importação realizada ainda.</p>';
+                return;
+            }
+            let html = `<div style="margin-bottom:20px;"><div style="font-weight:bold; color:#2c3e50; margin-bottom:10px; font-size:14px;">📅 Meses com dados importados</div><div style="display:flex; flex-wrap:wrap; gap:8px;">`;
+            mesesImportados.forEach(mes => {
+                const registros = dataObj.history.filter(h => h.monthYear === mes);
+                const presentes = registros.filter(h => h.presente === true).length;
+                const ausentes = registros.filter(h => h.presente !== true).length;
+                const pct = registros.length > 0 ? Math.round((presentes / registros.length) * 100) : 0;
+                const cor = pct >= 75 ? '#27ae60' : pct >= 50 ? '#f39c12' : '#e74c3c';
+                const justMes = justificativasData.filter(j => j.tipo === tipo && j.monthYear === mes);
+                const justCount = justMes.length;
+                html += `<div style="background:#fff; border:1px solid #e0e0e0; border-radius:10px; padding:10px 14px; min-width:180px; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                    <div style="font-weight:bold; color:#2c3e50; font-size:13px;">${mes}</div>
+                    <div style="margin-top:6px; font-size:12px; color:#555;"><span style="color:#27ae60;">✓ ${presentes} presentes</span> &nbsp;<span style="color:#e74c3c;">✗ ${ausentes} ausentes</span></div>
+                    <div style="margin-top:4px;"><span style="font-size:12px; font-weight:bold; color:${cor};">${pct}% de presença</span></div>
+                    ${justCount > 0 ? `<div style="margin-top:6px; padding:5px 8px; background:#fff8e1; border:1px solid #ffe082; border-radius:6px; font-size:11px; color:#795548;">📝 <strong>${justCount} justificativa${justCount>1?'s':''}</strong></div>` : ''}
+                    <div style="margin-top:8px;"><button onclick="desfazerImportacao('${tipo}','${mes}')" style="font-size:11px; background:#fff3f3; color:#e74c3c; border:1px solid #e74c3c; border-radius:5px; padding:3px 8px; cursor:pointer;">↩️ Desfazer importação</button></div>
+                </div>`;
+            });
+            html += `</div></div>`;
+            panel.innerHTML = html;
+        }
+
+        // Patch renderAnoBtns para aceitar custom
+        const _origRenderAnoBtns = renderAnoBtns;
+        function renderAnoBtns(tipo) {
+            const container = document.getElementById(`${tipo}AnoBtns`);
+            const infoEl = document.getElementById(`${tipo}AnoInfo`);
+            if (!container) return;
+            const anos = getAnosDisponiveis(tipo);
+            if (anos.length === 0) {
+                container.innerHTML = '<span style="color:#aaa; font-size:12px; font-style:italic;">Nenhum dado importado ainda</span>';
+                if (infoEl) infoEl.textContent = '';
+                return;
+            }
+            if (!anoAtivo[tipo] || !anos.includes(anoAtivo[tipo])) anoAtivo[tipo] = anos[anos.length - 1];
+            let html = '';
+            anos.forEach(ano => {
+                const ativo = anoAtivo[tipo] === ano;
+                const mesesDoAno = getMesesFiltrados_byAno(tipo, ano).length;
+                html += `<button onclick="setAnoAtivo('${tipo}','${ano}')"
+                    style="padding:6px 16px; border-radius:20px; border:2px solid ${ativo ? '#3498db' : '#ddd'};
+                    background:${ativo ? '#3498db' : 'white'}; color:${ativo ? 'white' : '#555'};
+                    font-weight:bold; font-size:13px; cursor:pointer; transition:all 0.2s;">
+                    ${ano} <span style="font-size:10px; opacity:0.8;">(${mesesDoAno} ${mesesDoAno===1?'mês':'meses'})</span>
+                </button>`;
+            });
+            container.innerHTML = html;
+            if (infoEl) {
+                const meses = getMesesFiltrados(tipo);
+                infoEl.textContent = meses.length > 0 ? `Exibindo: ${meses.join(' · ')}` : '';
+            }
+        }
+
+        // Patch uploadPresencaExcel para aceitar custom
+        const _origUploadPresencaExcel = uploadPresencaExcel;
+        function uploadPresencaExcel(event, tipo) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    showMessage(`${tipo}Message`, 'Processando Excel...', 'success');
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const { pessoas, monthYear } = parseExcelData(workbook);
+                    if (pessoas.length === 0 || !monthYear) {
+                        showMessage(`${tipo}Message`, 'Nenhum dado encontrado no Excel.', 'error');
+                        return;
+                    }
+                    const dataObj = getDataObj(tipo);
+                    if (!dataObj) return;
+                    if (!dataObj.months.includes(monthYear)) {
+                        dataObj.months.push(monthYear);
+                        dataObj.months.sort((a, b) => {
+                            const [mesA, anoA] = a.split(' de ');
+                            const [mesB, anoB] = b.split(' de ');
+                            const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+                            return (meses.indexOf(mesA) + parseInt(anoA)*12) - (meses.indexOf(mesB) + parseInt(anoB)*12);
+                        });
+                    }
+                    if (!window._undoSnapshot) window._undoSnapshot = {};
+                    window._undoSnapshot[tipo] = JSON.parse(JSON.stringify(dataObj));
+                    const cadastroNomes = cadastroPessoas.map(p => p.nome.toLowerCase().trim());
+                    const encontrados = pessoas.filter(p => cadastroNomes.includes(p.nome.toLowerCase().trim()));
+                    const naoEncontrados = pessoas.filter(p => !cadastroNomes.includes(p.nome.toLowerCase().trim()));
+                    const presentes = pessoas.filter(p => p.presente === true);
+                    if (!window._auditLog) window._auditLog = {};
+                    if (!window._auditLog[tipo]) window._auditLog[tipo] = [];
+                    window._auditLog[tipo].unshift({ monthYear, arquivo: file.name, timestamp: new Date().toISOString(), totalExcel: pessoas.length, encontrados: encontrados.length, naoEncontrados: naoEncontrados.map(p => p.nome), presentes: presentes.length, ausentes: pessoas.length - presentes.length, snapshot: window._undoSnapshot[tipo] });
+                    pessoas.forEach(p => {
+                        const temJust = justificativasData.some(j => j.tipo === tipo && j.nome.toLowerCase().trim() === p.nome.toLowerCase().trim() && j.monthYear === monthYear);
+                        const justKey = `${tipo}_${p.nome}_${monthYear}`;
+                        const cellState = localStorage.getItem(justKey);
+                        dataObj.history.push({ monthYear, ...p, id: Date.now() + Math.random() });
+                    });
+                    renderAnoBtns(tipo); renderFarol(tipo); renderHistory(tipo);
+                    updateDashboard(); saveData();
+                    const avisoNaoEncontrados = naoEncontrados.length > 0 ? ` ⚠️ ${naoEncontrados.length} nome(s) não encontrado(s) no cadastro.` : ' ✅ Todos os nomes foram encontrados.';
+                    showMessage(`${tipo}Message`, `Excel processado! ${pessoas.length} pessoa(s) para ${monthYear}.${avisoNaoEncontrados}`, naoEncontrados.length > 0 ? 'error' : 'success');
+                } catch (error) {
+                    console.error(error);
+                    showMessage(`${tipo}Message`, 'Erro ao processar Excel: ' + error.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        // Patch desfazerImportacao para custom
+        const _origDesfazerImportacao = desfazerImportacao;
+        function desfazerImportacao(tipo, monthYear) {
+            if (!confirm(`Remover todos os dados de "${monthYear}" da aba ${getTipoNome(tipo)}? Esta ação não pode ser desfeita.`)) return;
+            const dataObj = getDataObj(tipo);
+            if (!dataObj) return;
+            dataObj.history = dataObj.history.filter(h => h.monthYear !== monthYear);
+            dataObj.months = dataObj.months.filter(m => m !== monthYear);
+            renderAnoBtns(tipo); renderFarol(tipo); renderHistory(tipo);
+            updateDashboard(); saveData();
+        }
+
+        // Patch clearDataForType para custom
+        const _origClearDataForType = clearDataForType;
+        function clearDataForType(tipo) {
+            const nome = meetingNames[tipo] ? meetingNames[tipo].sigla : getTipoNome(tipo);
+            if (!confirm(`Tem certeza que deseja limpar todos os dados de ${nome}?`)) return;
+            const dataObj = getDataObj(tipo);
+            if (dataObj) { dataObj.months = []; dataObj.history = []; }
+            clearJustifications(tipo);
+            renderFarol(tipo); renderHistory(tipo); updateDashboard(); saveData();
+            showMessage(`${tipo}Message`, `Dados de ${nome} foram limpos com sucesso!`, 'success');
+        }
+
+        // Patch adicionarMesTeste para custom
+        const _origAdicionarMesTeste = adicionarMesTeste;
+        function adicionarMesTeste(tipo) {
+            const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+            const agora = new Date();
+            const mesAtual = MESES[agora.getMonth()] + ' de ' + agora.getFullYear();
+            const entrada = prompt(`Adicionar mês à aba ${getTipoNome(tipo)}.\n\nFormato: "Março de 2025"\nDeixe em branco para usar o mês atual (${mesAtual}):`, mesAtual);
+            if (entrada === null) return;
+            const val = entrada.trim() || mesAtual;
+            const partes = val.split(' de ');
+            if (partes.length !== 2 || !MESES.includes(partes[0]) || isNaN(parseInt(partes[1]))) { alert('Formato inválido. Use: "Março de 2025"'); return; }
+            const dataObj = getDataObj(tipo);
+            if (!dataObj) return;
+            if (dataObj.months.includes(val)) { alert(`O mês "${val}" já existe nesta aba.`); return; }
+            dataObj.months.push(val);
+            dataObj.months.sort((a, b) => {
+                const [mesA, anoA] = a.split(' de ');
+                const [mesB, anoB] = b.split(' de ');
+                return (MESES.indexOf(mesA) + parseInt(anoA)*12) - (MESES.indexOf(mesB) + parseInt(anoB)*12);
+            });
+            renderAnoBtns(tipo); renderFarol(tipo); renderHistory(tipo); updateDashboard(); saveData();
+        }
+
+        // Patch exportToExcel para custom
+        const _origExportToExcel = exportToExcel;
+        function exportToExcel(tipo) {
+            const dataObj = getDataObj(tipo);
+            if (!dataObj) return;
+            const exportData = [];
+            const header = ['Nome', 'Ministério/Cargo', 'Localidade', ...dataObj.months];
+            exportData.push(header);
+            const pessoasExport = sortByHierarchy(cadastroPessoas.filter(p => !p.reunioes || p.reunioes[tipo] !== false), p => p.cargo);
+            pessoasExport.forEach(pessoa => {
+                const row = [pessoa.nome, pessoa.cargo, pessoa.localidade];
+                dataObj.months.forEach(month => {
+                    const presente = dataObj.history.find(h => h.monthYear === month && h.nome.toLowerCase() === pessoa.nome.toLowerCase() && h.presente === true);
+                    const justKey = `${tipo}_${pessoa.nome}_${month}`;
+                    const cellState = localStorage.getItem(justKey);
+                    if (cellState === 'A') row.push('N');
+                    else if (presente || cellState === 'P') row.push('S');
+                    else if (cellState === 'J') row.push('J');
+                    else row.push('N');
+                });
+                exportData.push(row);
+            });
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Farol de Presença');
+            XLSX.writeFile(wb, `Farol_Presenca_${getTipoNome(tipo)}.xlsx`);
+        }
+
+        // Patch exportToPDF para custom
+        const _origExportToPDF = exportToPDF;
+        function exportToPDF(tipo) {
+            const table = document.getElementById(`${tipo}FarolTable`);
+            if (!table) return;
+            html2canvas(table, { scale: 2, logging: false }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                const imgWidth = 280;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+                pdf.save(`Farol_Presenca_${getTipoNome(tipo)}.pdf`);
+            });
+        }
+
+        // Patch exportarAusentesMes para custom  
+        const _origExportarAusentesMes = exportarAusentesMes;
+        function exportarAusentesMes(tipo) {
+            const dataObj = getDataObj(tipo);
+            if (!dataObj) return;
+            const meses = getMesesFiltrados(tipo);
+            if (meses.length === 0) { showToast('Nenhum mês disponível.', 'info'); return; }
+            let mesSelecionado = meses[meses.length - 1];
+            const filtroMesEl = document.getElementById(`${tipo}FiltroMes`);
+            if (filtroMesEl && filtroMesEl.value) mesSelecionado = filtroMesEl.value;
+            if (meses.length > 1 && (!filtroMesEl || !filtroMesEl.value)) {
+                const op = prompt(`Mês para exportar ausentes:\n${meses.map((m,i)=>`${i+1}. ${m}`).join('\n')}\n\nDigite o número:`, meses.length);
+                const idx = parseInt(op) - 1;
+                if (isNaN(idx) || idx < 0 || idx >= meses.length) return;
+                mesSelecionado = meses[idx];
+            }
+            const pessoasDoTipo = sortByHierarchy(cadastroPessoas.filter(p => !p.reunioes || p.reunioes[tipo] !== false), p => p.cargo);
+            const ausentes = [];
+            pessoasDoTipo.forEach(pessoa => {
+                const justKey = `${tipo}_${pessoa.nome}_${mesSelecionado}`;
+                const cellState = localStorage.getItem(justKey);
+                const temJustFB = justificativasData.some(j => j.tipo === tipo && j.nome.toLowerCase().trim() === pessoa.nome.toLowerCase().trim() && j.monthYear === mesSelecionado);
+                const pExcel = dataObj.history.find(h => h.monthYear === mesSelecionado && h.nome.toLowerCase() === pessoa.nome.toLowerCase() && h.presente === true);
+                const presente = (temJustFB || cellState === 'J') ? false : (pExcel || cellState === 'P');
+                if (!presente) {
+                    const status = (temJustFB || cellState === 'J') ? 'Justificado' : 'Ausente';
+                    ausentes.push([pessoa.nome, pessoa.cargo, pessoa.localidade, status]);
+                }
+            });
+            if (ausentes.length === 0) { showToast('Nenhum ausente em ' + mesSelecionado, 'info'); return; }
+            const exportData = [['Nome', 'Ministério/Cargo', 'Localidade', 'Status'], ...ausentes];
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Ausentes');
+            XLSX.writeFile(wb, `Ausentes_${getTipoNome(tipo)}_${mesSelecionado.replace(/ /g,'_')}.xlsx`);
+            showToast(`📋 ${ausentes.length} ausente(s) exportado(s)`, 'info');
+        }
+
+        // Patch saveData para incluir customMeetings e meetingNames
+        const _origSaveData2 = saveData;
+        function saveData() {
+            const cellOverrides = getCellOverrides();
+            const customData = customMeetings.map(cm => ({ id: cm.id, sigla: cm.sigla, desc: cm.desc, data: cm.data }));
+            const data = { cadastroPessoas, rmaData, raData, raecData, rmcData, cellOverrides, meetingNames, customMeetings: customData };
+            localStorage.setItem('farolPresencaData', JSON.stringify(data));
+            if (window._firebase) {
+                window._firebase.syncAutoSave(data).then(() => {
+                    window._lastSync = new Date();
+                    atualizarStatusSync();
+                    showToast('☁️ Dados salvos na nuvem', 'success', 2000);
+                }).catch(e => {
+                    console.warn('Sync Firebase falhou:', e);
+                    showToast('⚠️ Falha ao sincronizar', 'warning', 3000);
+                });
+            }
+        }
+
+        // Patch aplicarDados para restaurar meetingNames e customMeetings
+        const _origAplicarDados = aplicarDados;
+        function aplicarDados(dados) {
+            cadastroPessoas = (dados.cadastroPessoas || []).map(p => ({ ...p, reunioes: p.reunioes || { rma: true, ra: false, raec: false } }));
+            rmaData = dados.rmaData || { months: [], history: [] };
+            raData = dados.raData || { months: [], history: [] };
+            raecData = dados.raecData || { months: [], history: [] };
+            rmcData = dados.rmcData || { months: [], history: [] };
+            if (dados.meetingNames) {
+                Object.assign(meetingNames, dados.meetingNames);
+            }
+            if (dados.customMeetings && Array.isArray(dados.customMeetings)) {
+                // Remover abas antigas do DOM
+                customMeetings.forEach(cm => { const el = document.getElementById(cm.id); if (el) el.remove(); });
+                customMeetings = dados.customMeetings.map(cm => ({ ...cm, data: cm.data || { months: [], history: [] } }));
+                customMeetings.forEach(cm => { meetingNames[cm.id] = { sigla: cm.sigla, desc: cm.desc }; if (!anoAtivo[cm.id]) anoAtivo[cm.id] = null; });
+            }
+            if (dados.cellOverrides) applyCellOverrides(dados.cellOverrides);
+            localStorage.setItem('farolPresencaData', JSON.stringify({ cadastroPessoas, rmaData, raData, raecData, rmcData, cellOverrides: dados.cellOverrides || {}, meetingNames, customMeetings: customMeetings.map(cm => ({id:cm.id,sigla:cm.sigla,desc:cm.desc,data:cm.data})) }));
+            renderTabs();
+            renderGerenciadorReunioes();
+            atualizarCadastroParaCustomMeetings();
+            renderFarol('rma'); renderFarol('ra'); renderFarol('raec');
+            renderHistory('rma'); renderHistory('ra'); renderHistory('raec');
+            customMeetings.forEach(cm => { renderAnoBtns(cm.id); renderFarol(cm.id); renderHistory(cm.id); });
+            updateDashboard();
+        }
+
+        // Patch sincronizarAgora para incluir dados custom
+        const _origSincronizarAgora = sincronizarAgora;
+        async function sincronizarAgora() {
+            const msg = document.getElementById('backupMsg');
+            if (!window._firebase) { if(msg) msg.innerHTML = '<span style="color:red">Firebase não conectado.</span>'; return; }
+            try {
+                if(msg) msg.innerHTML = '<span style="color:#888">⏳ Sincronizando...</span>';
+                const customData = customMeetings.map(cm => ({ id: cm.id, sigla: cm.sigla, desc: cm.desc, data: cm.data }));
+                await window._firebase.syncAutoSave({ cadastroPessoas, rmaData, raData, raecData, rmcData, meetingNames, customMeetings: customData });
+                window._lastSync = new Date();
+                atualizarStatusSync();
+                if(msg) msg.innerHTML = '<span style="color:green">✅ Sincronizado com sucesso!</span>';
+                setTimeout(() => { if(msg) msg.innerHTML = ''; }, 3000);
+            } catch(e) {
+                if(msg) msg.innerHTML = '<span style="color:red">❌ Erro ao sincronizar: ' + e.message + '</span>';
+            }
+        }
+
+        // Patch _getSystemData para incluir dados custom
+        window._getSystemData = function() {
+            const customData = customMeetings.map(cm => ({ id: cm.id, sigla: cm.sigla, desc: cm.desc, data: cm.data }));
+            return { cadastroPessoas, rmaData, raData, raecData, rmcData, meetingNames, customMeetings: customData };
+        };
+
+        // Inicializar tabs fixas com data-tab attribute
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            const onclick = btn.getAttribute('onclick') || '';
+            const match = onclick.match(/openTab\('([^']+)'\)/);
+            if (match) btn.setAttribute('data-tab', match[1]);
+        });
+
+        // Inicializar gerenciador
+        renderGerenciadorReunioes();
+        renderTabs();
+
+        // Fechar modal ao clicar no fundo
+        document.getElementById('modalReuniao').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalReuniao();
+        });
+
+        // Enter confirma modal
+        document.getElementById('mrDesc').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') confirmarModalReuniao();
+        });
+        document.getElementById('mrSigla').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') document.getElementById('mrDesc').focus();
+        });
+        document.getElementById('mrSigla').addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+
+        // Patch do cadastro manual para incluir reuniões customizadas
+        const _origAddManualPerson = addManualPerson;
+        function addManualPerson(event) {
+            event.preventDefault();
+            const reunioes = {
+                rma: document.getElementById('manualRMA').checked,
+                ra:  document.getElementById('manualRA').checked,
+                raec:document.getElementById('manualRAEC').checked
+            };
+            // Adicionar reuniões customizadas
+            customMeetings.forEach(cm => {
+                const cb = document.getElementById(`manualCM_${cm.id}`);
+                reunioes[cm.id] = cb ? cb.checked : false;
+            });
+            const pessoa = {
+                nome: document.getElementById('manualNome').value,
+                cargo: document.getElementById('manualCargo').value,
+                localidade: document.getElementById('manualLocalidade').value,
+                cidade: document.getElementById('manualCidade').value,
+                reunioes
+            };
+            const exists = cadastroPessoas.find(p => p.nome.toLowerCase() === pessoa.nome.toLowerCase());
+            if (exists) { showMessage('cadastroMessage', 'Esta pessoa já está cadastrada!', 'error'); return; }
+            cadastroPessoas.push(pessoa);
+            renderCadastroTable();
+            renderFarol('rma'); renderFarol('ra'); renderFarol('raec');
+            customMeetings.forEach(cm => renderFarol(cm.id));
+            saveData();
+            event.target.reset();
+            showMessage('cadastroMessage', 'Pessoa adicionada com sucesso!', 'success');
+        }
+
+        // Patch renderCadastroTable para incluir reuniões customizadas nas colunas
+        const _origRenderCadastroTable = renderCadastroTable;
+        function renderCadastroTable() {
+            const tbody = document.getElementById('cadastroTableBody');
+            tbody.innerHTML = '';
+            const filtroNome    = (document.getElementById('cadastroFiltroNome')    || {}).value || '';
+            const filtroCargo   = (document.getElementById('cadastroFiltroCargo')   || {}).value || '';
+            const filtroReuniao = (document.getElementById('cadastroFiltroReuniao') || {}).value || '';
+
+            // Atualizar cabeçalho da tabela com custom meetings
+            const thead = document.querySelector('#cadastroTable thead tr');
+            if (thead) {
+                // Manter as primeiras 4 colunas fixas + RMA, RA, RAEC
+                while (thead.children.length > 7) thead.removeChild(thead.lastChild);
+                // Remover th custom antigos (antes da coluna Ações que está no índice 7)
+                const thAcoes = thead.children[7] || null;
+                // Adicionar th para cada custom meeting
+                customMeetings.forEach(cm => {
+                    const th = document.createElement('th');
+                    th.setAttribute('data-th-custom', cm.id);
+                    th.style.textAlign = 'center';
+                    th.textContent = cm.sigla;
+                    if (thAcoes) thead.insertBefore(th, thAcoes);
+                    else thead.appendChild(th);
+                });
+                // Garantir que Ações está no final
+                if (thAcoes && thead.lastChild !== thAcoes) thead.appendChild(thAcoes);
+            }
+
+            const pessoasComIndice = cadastroPessoas.map((pessoa, index) => ({ pessoa, index }));
+            const pessoasOrdenadas = sortByHierarchy(pessoasComIndice, item => item.pessoa.cargo);
+            const filtradas = pessoasOrdenadas.filter(({ pessoa }) => {
+                if (filtroNome   && !pessoa.nome.toLowerCase().includes(filtroNome.toLowerCase())) return false;
+                if (filtroCargo  && normalizeCargo(pessoa.cargo) !== filtroCargo) return false;
+                if (filtroReuniao) {
+                    if (!pessoa.reunioes) return false;
+                    if (!pessoa.reunioes[filtroReuniao]) return false;
+                }
+                return true;
+            });
+            const infoEl = document.getElementById('cadastroFiltroInfo');
+            if (infoEl) {
+                const total = cadastroPessoas.length;
+                const exibindo = filtradas.length;
+                infoEl.textContent = (filtroNome || filtroCargo || filtroReuniao) ? `Exibindo ${exibindo} de ${total} pessoa(s)` : `${total} pessoa(s) cadastrada(s)`;
+            }
+
+            filtradas.forEach(({ pessoa, index }) => {
+                if (!pessoa.reunioes) pessoa.reunioes = { rma: true, ra: false, raec: false };
+                const tr = document.createElement('tr');
+                // Colunas custom
+                const customCols = customMeetings.map(cm => `
+                    <td style="text-align:center;">
+                        <input type="checkbox" ${pessoa.reunioes[cm.id] ? 'checked' : ''}
+                            onchange="toggleReuniao(${index},'${cm.id}',this.checked)"
+                            style="width:16px;height:16px;cursor:pointer;" title="Participa da ${cm.sigla}">
+                    </td>`).join('');
+                tr.innerHTML = `
+                    <td>${pessoa.nome}</td>
+                    <td>${pessoa.cargo}</td>
+                    <td>${pessoa.localidade}</td>
+                    <td>${pessoa.cidade}</td>
+                    <td style="text-align:center;"><input type="checkbox" ${pessoa.reunioes.rma ? 'checked' : ''} onchange="toggleReuniao(${index},'rma',this.checked)" style="width:16px;height:16px;cursor:pointer;" title="Participa da RMA"></td>
+                    <td style="text-align:center;"><input type="checkbox" ${pessoa.reunioes.ra ? 'checked' : ''} onchange="toggleReuniao(${index},'ra',this.checked)" style="width:16px;height:16px;cursor:pointer;" title="Participa da RA"></td>
+                    <td style="text-align:center;"><input type="checkbox" ${pessoa.reunioes.raec ? 'checked' : ''} onchange="toggleReuniao(${index},'raec',this.checked)" style="width:16px;height:16px;cursor:pointer;" title="Participa da RAEC"></td>
+                    ${customCols}
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn" style="background:#8e44ad;color:white;" onclick="abrirPerfil(${index})">👤 Perfil</button>
+                            <button class="btn btn-warning" onclick="editPerson(${index})">✏️ Editar</button>
+                            <button class="btn btn-danger" onclick="deletePerson(${index})">🗑️ Excluir</button>
+                        </div>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        }
 
         // Carregar dados ao iniciar
         loadData();
